@@ -67,7 +67,6 @@ def get_response(text: str, client: AzureOpenAI):
     answer = response.choices[0].message.content
     citations = []
 
-    # ✅ Optionally extract citations if available
     try:
         context_messages = response.choices[0].message.context.get("messages", [])
         if context_messages:
