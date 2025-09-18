@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot UI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .chat-container h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .chat-box {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .chat-box .message {
+            margin: 5px 0;
+        }
+        .chat-box .message.user {
+            text-align: right;
+            color: blue;
+        }
+        .chat-box .message.bot {
+            text-align: left;
+            color: green;
+        }
+        .chat-box .message.bot.typing {
+            font-style: italic;
+            color: gray;
+        }
+        .chat-box .message.bot .answer {
+            color: green;
+        }
+        .chat-box .message.bot .sources {
+            color: blue;
+        }
+        .input-container {
+            display: flex;
+        }
+        .input-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .input-container button {
+            padding: 10px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .input-container button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Chatbot</h1>
+        <div class="chat-box" id="chat-box">
+            <!-- Messages will appear here -->
+        </div>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Type your question here...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+
+            const userMessage = userInput.value;
+            if (!userMessage) return;
+
+            // Display user message
+            const userMessageElement = document.createElement('div');
+            userMessageElement.className = 'message user';
+            userMessageElement.textContent = userMessage;
+            chatBox.appendChild(userMessageElement);
+
+            // Clear input field
+            userInput.value = '';
+
+            // Display typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'message bot typing';
+            typingIndicator.textContent = 'searching...';
+            chatBox.appendChild(typingIndicator);
+
+            try {
+                // Call the API
+                const response = await fetch('http://127.0.0.1:8000/aisearch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: userMessage })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get response from the server');
+                }
+
+                const data = await response.json();
+
+                // Remove typing indicator
+                chatBox.removeChild(typingIndicator);
+
+                // Display bot response with structured layout
+                const botMessageElement = document.createElement('div');
+                botMessageElement.className = 'message bot';
+
+                const answerElement = document.createElement('div');
+                answerElement.className = 'answer';
+
+                // Replace \n with <br> for proper new line rendering
+                const formattedAnswer = data.answer.replace(/\n/g, '<br>');
+                answerElement.innerHTML = `Answer: ${formattedAnswer}`;
+                botMessageElement.appendChild(answerElement);
+
+                if (data.sources && data.sources.length > 0) {
+                    const sourcesElement = document.createElement('div');
+                    sourcesElement.className = 'sources';
+                    sourcesElement.textContent = `Sources: ${data.sources.join(', ')}`;
+                    botMessageElement.appendChild(sourcesElement);
+                }
+
+                chatBox.appendChild(botMessageElement);
+
+            } catch (error) {
+                console.error('Error:', error);
+                chatBox.removeChild(typingIndicator);
+                const errorMessageElement = document.createElement('div');
+                errorMessageElement.className = 'message bot';
+                errorMessageElement.textContent = 'Error: Unable to get a response.';
+                chatBox.appendChild(errorMessageElement);
+            }
+
+            // Scroll to the bottom of the chat box
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>

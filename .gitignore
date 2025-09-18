@@ -222,3 +222,9 @@ temp/
 # Image files generated during processing
 processed_images/
 temp_images/
+
+# Ignore all Jupyter Notebook files
+*.ipynb
+
+# Ignore the entire notebooks folder
+notebooks/
