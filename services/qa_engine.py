@@ -32,6 +32,20 @@ extension_config = dict(
 )
 
 
+GROUNDED_PROMPT = """
+You are a helpful assistant answering questions based strictly on the documents provided.
+
+- Use only the information from the sources below to answer the query.
+- Respond in clear, concise bullet points.
+- Do NOT include any information that is not explicitly stated in the sources.
+- If the answer is not available in the provided sources, reply with: "I couldn’t find that information in the documents provided."
+
+Question:
+{text}
+
+"""
+
+
 def get_response(text: str, client: AzureOpenAI):
     """
     Uses Azure OpenAI with Azure Cognitive Search extensions to answer a question
@@ -39,29 +53,45 @@ def get_response(text: str, client: AzureOpenAI):
     """
     response = client.chat.completions.create(
         model=azure_oai_deployment,
-        temperature=0.5,
-        max_tokens=1000,
+        temperature=0.3,  # ลดลงเล็กน้อยเพื่อให้ภาษาสม่ำเสมอแต่ยังยืดหยุ่น
+        max_tokens=600,
         messages=[
             {
                 "role": "system",
                 "content": (
-                    "คุณเป็นผู้ช่วยที่ให้ข้อมูลเป็นภาษาไทยโดยอิงจากบริบทที่ให้มาเท่านั้น "
-                    "กรุณาตอบคำถามอย่างสุภาพและชัดเจน โดยจัดรูปแบบคำตอบให้อ่านง่าย เช่น:\n"
-                    "- ใช้หัวข้อหรือหัวข้อย่อยในการแบ่งหมวดหมู่ข้อมูล\n"
-                    "- ใช้ bullet points (เช่น - หรือ •) เพื่อแจกแจงรายละเอียด\n"
-                    "- เว้นบรรทัดระหว่างหัวข้อเพื่อให้อ่านง่าย\n"
-                    "- หลีกเลี่ยงการตอบเป็นข้อความยาวติดกัน\n\n"
-                    " - หากมีการลำดับขั้นตอนหรือจำนวนข้อ เช่น 1., 2., 3..\n"
-                    "ห้ามใส่ citation markers เช่น [doc1], [doc2] หรือ URL ใด ๆ ในคำตอบ\n"
-                    "หากไม่สามารถตอบได้จากบริบท ให้ตอบว่า 'ไม่ทราบข้อมูลเพียงพอที่จะตอบคำถามนี้ได้'\n"
+                    "You are an expert assistant providing accurate answers based **strictly on document context**. "
+                    "**CRITICAL: Respond in the SAME language as the user's question.**\n\n"
+                    "**Language Rules:**\n"
+                    "- English question → English answer (clear, professional)\n"
+                    "- Thai question → Thai answer (natural, conversational Thai - not direct translation)\n"
+                    "- Focus on main language, ignore technical terms in parentheses\n\n"
+                    "**Format:**\n"
+                    "- Use bullet points (•) and headings for clarity\n"
+                    "- Be comprehensive but concise\n"
+                    "- Professional yet friendly tone\n\n"
+                    "**Strict Rules:**\n"
+                    "- ⚠️ ONLY use information from provided documents\n"
+                    "- ⚠️ NO citation markers [doc1], [source], URLs\n"
+                    "- ⚠️ NO assumptions beyond document content\n\n"
+                    "**If insufficient info:**\n"
+                    "- Thai: 'ขออภัย ไม่มีข้อมูลเพียงพอในเอกสารสำหรับคำถามนี้'\n"
+                    "- English: 'I don't have sufficient information in the documents to answer this question.'\n"
                 ),
             },
             {
                 "role": "user",
-                "content": text,
+                "content": f"""
+            Answer this question using ONLY the provided documents.
+            
+            **IMPORTANT: Respond in the same language as the question.**
+            
+            Question: {text}
+            
+            Provide a detailed answer with clear formatting.
+            """,
             },
         ],
-        extra_body=extension_config,  # Uses Azure Cognitive Search to get context
+        extra_body=extension_config,
     )
 
     answer = response.choices[0].message.content

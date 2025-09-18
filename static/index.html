@@ -3,96 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot UI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>RAG Q&A System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            background-color: #f4f4f9;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
         }
+        
         .chat-container {
             width: 100%;
-            max-width: 600px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
         }
+        
         .chat-container h1 {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 2rem;
         }
+        
         .chat-box {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            height: 300px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            height: 400px;
             overflow-y: auto;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
+            background: #fff;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
         }
+        
         .chat-box .message {
-            margin: 5px 0;
+            margin: 15px 0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 85%;
         }
+        
         .chat-box .message.user {
-            text-align: right;
-            color: blue;
+            margin-left: auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
         }
+        
         .chat-box .message.bot {
-            text-align: left;
-            color: green;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+            color: #2d3748;
         }
+        
         .chat-box .message.bot.typing {
             font-style: italic;
-            color: gray;
+            color: #718096;
+            background: #edf2f7;
         }
+
+        /* Markdown Styling for Bot Messages */
         .chat-box .message.bot .answer {
-            color: green;
+            line-height: 1.6;
+            color: #2d3748;
         }
+
+        /* Headings */
+        .chat-box .message.bot .answer h3 {
+            color: #2b6cb0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 16px 0 8px 0;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .chat-box .message.bot .answer h4 {
+            color: #4a5568;
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin: 12px 0 6px 0;
+        }
+
+        /* Bold text */
+        .chat-box .message.bot .answer strong {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        /* Lists */
+        .chat-box .message.bot .answer ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .chat-box .message.bot .answer li {
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+
+        /* Code blocks */
+        .chat-box .message.bot .answer code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        .chat-box .message.bot .answer pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        /* Citations/Sources */
         .chat-box .message.bot .sources {
-            color: blue;
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9em;
+            color: #2c5282;
         }
+        
         .input-container {
             display: flex;
+            gap: 12px;
+            align-items: center;
         }
+        
         .input-container input {
             flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
         }
+        
+        .input-container input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
         .input-container button {
-            padding: 10px;
+            padding: 16px 24px;
             border: none;
-            background-color: #007bff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 4px;
+            border-radius: 25px;
             cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
+        
         .input-container button:hover {
-            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Scrollbar styling */
+        .chat-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <h1>Chatbot</h1>
+        <h1>🤖 RAG Q&A System</h1>
         <div class="chat-box" id="chat-box">
             <!-- Messages will appear here -->
         </div>
         <div class="input-container">
-            <input type="text" id="user-input" placeholder="Type your question here...">
-            <button onclick="sendMessage()">Send</button>
+            <input type="text" id="user-input" placeholder="Ask me anything about your documents..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">📤 Send</button>
         </div>
     </div>
 
     <script>
+        // Handle Enter key press
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Function to render Markdown content
+        function renderMarkdown(text) {
+            // Configure marked options for better rendering
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+            return marked.parse(text);
+        }
+
         async function sendMessage() {
             const userInput = document.getElementById('user-input');
             const chatBox = document.getElementById('chat-box');
@@ -112,7 +254,7 @@
             // Display typing indicator
             const typingIndicator = document.createElement('div');
             typingIndicator.className = 'message bot typing';
-            typingIndicator.textContent = 'searching...';
+            typingIndicator.innerHTML = '🔍 Searching documents...';
             chatBox.appendChild(typingIndicator);
 
             try {
@@ -134,22 +276,23 @@
                 // Remove typing indicator
                 chatBox.removeChild(typingIndicator);
 
-                // Display bot response with structured layout
+                // Display bot response with Markdown rendering
                 const botMessageElement = document.createElement('div');
                 botMessageElement.className = 'message bot';
 
                 const answerElement = document.createElement('div');
                 answerElement.className = 'answer';
 
-                // Replace \n with <br> for proper new line rendering
-                const formattedAnswer = data.answer.replace(/\n/g, '<br>');
-                answerElement.innerHTML = `Answer: ${formattedAnswer}`;
+                // Render Markdown content instead of plain text
+                const renderedAnswer = renderMarkdown(data.answer);
+                answerElement.innerHTML = renderedAnswer;
                 botMessageElement.appendChild(answerElement);
 
+                // Display sources if available
                 if (data.sources && data.sources.length > 0) {
                     const sourcesElement = document.createElement('div');
                     sourcesElement.className = 'sources';
-                    sourcesElement.textContent = `Sources: ${data.sources.join(', ')}`;
+                    sourcesElement.innerHTML = `📚 <strong>Sources:</strong> ${data.sources.join(', ')}`;
                     botMessageElement.appendChild(sourcesElement);
                 }
 
@@ -160,7 +303,7 @@
                 chatBox.removeChild(typingIndicator);
                 const errorMessageElement = document.createElement('div');
                 errorMessageElement.className = 'message bot';
-                errorMessageElement.textContent = 'Error: Unable to get a response.';
+                errorMessageElement.innerHTML = '<div class="answer">❌ <strong>Error:</strong> Unable to get a response. Please try again.</div>';
                 chatBox.appendChild(errorMessageElement);
             }
 

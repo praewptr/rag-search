@@ -1,184 +1,95 @@
-# RAG PDF Question Answering API
+# RAG PDF Question Answering System
 
-A FastAPI-based Retrieval Augmented Generation (RAG) system that allows you to upload PDF documents and ask questions based on their content.
+This repository contains a Retrieval-Augmented Generation (RAG) system designed to answer questions based on uploaded PDF documents. The system is built using FastAPI and integrates various tools for text extraction, embedding generation, and question answering.
 
 ## Features
 
-- **PDF Upload**: Upload PDF documents to build a knowledge base
-- **Vision-Enhanced PDF Processing**: Upload PDFs that are converted to images and processed with Azure OpenAI Vision for advanced text extraction and document understanding
-- **Question Answering**: Ask questions and get answers based on uploaded documents
-- **Vector Search**: Uses ChromaDB and sentence transformers for semantic search
-- **RESTful API**: Clean FastAPI endpoints for easy integration
-- **Document Management**: List and delete uploaded documents
+- **PDF Upload and Processing**: Extract text and images from PDF files using PyPDF2 and pdf2image.
+- **Azure OpenAI Vision Integration**: Advanced document analysis and understanding.
+- **ChromaDB**: Vector database for storing and retrieving document embeddings.
+- **Question Answering**: Leverages sentence-transformers and LangChain for embedding generation and text processing.
+- **REST API**: FastAPI endpoints for seamless interaction.
 
-## Setup
+## Project Structure
 
-### 1. Install Dependencies
-
-```bash
-pip install -r requirements.txt
+```
+.
+├── main.py                     # FastAPI application entry point
+├── services/                   # Core service modules
+│   ├── document_processor.py   # PDF text extraction logic
+│   ├── image_processor.py      # PDF to image conversion and Azure Vision processing
+│   ├── vector_store.py         # ChromaDB integration for embeddings
+│   ├── qa_engine.py            # Question answering logic
+├── models/                     # Data models
+├── static/                     # Static files (e.g., HTML templates)
+├── notebooks/                  # Jupyter notebooks for experimentation
+├── requirements.txt            # Python dependencies
+└── README.md                   # Project documentation
 ```
 
-### 2. Environment Configuration
+## Installation
 
-Copy the example environment file and configure it:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/praewptr/rag-search.git
+   cd rag-search
+   ```
 
-```bash
-cp .env.example .env
-```
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   .\venv\Scripts\activate  # On Windows
+   source venv/bin/activate   # On macOS/Linux
+   ```
 
-Edit `.env` file and add your API keys:
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-**For standard processing:**
-```
-OPENAI_API_KEY=your_openai_api_key_here
-```
+## Usage
 
-**For vision-enhanced processing (required for /upload-vision endpoint):**
-```
-AZURE_OPENAI_API_KEY=your_azure_openai_api_key_here
-AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
-AZURE_OPENAI_API_VERSION=2024-02-01
-AZURE_OPENAI_VISION_MODEL=gpt-4-vision-preview
-```
+1. Start the FastAPI server:
+   ```bash
+   python main.py
+   ```
 
-**Note:** The system works without OpenAI API keys using a fallback method, but Azure OpenAI is required for vision processing.
-
-### 3. Run the Application
-
-```bash
-python main.py
-```
-
-Or using uvicorn directly:
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-The API will be available at `http://localhost:8000`
-
-## API Documentation
-
-Once the server is running, you can access:
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
+2. Open your browser and navigate to:
+   ```
+   http://127.0.0.1:8000/docs
+   ```
+   Use the interactive Swagger UI to test the API endpoints.
 
 ## API Endpoints
 
-### Upload Document (Standard)
-```http
-POST /upload
-Content-Type: multipart/form-data
-```
-Upload a PDF file to the knowledge base using standard text extraction.
+- `POST /upload`: Upload PDF documents for standard text extraction.
+- `POST /upload-vision`: Upload PDF documents for Azure OpenAI Vision processing.
+- `POST /ask`: Ask questions based on uploaded documents.
+- `GET /documents`: List all uploaded documents.
+- `DELETE /documents/{document_id}`: Delete specific documents.
 
-### Upload Document (Vision-Enhanced)
-```http
-POST /upload-vision
-Content-Type: multipart/form-data
-```
-Upload a PDF file that will be converted to images and processed with Azure OpenAI Vision for enhanced text extraction and document understanding.
+## Contributing
 
-### Ask Question
-```http
-POST /ask
-Content-Type: application/json
+Contributions are welcome! Please follow these steps:
 
-{
-  "question": "What is the main topic of the document?",
-  "document_ids": ["optional-document-id-filter"]
-}
-```
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Commit your changes and push to your fork.
+4. Submit a pull request.
 
-### List Documents
-```http
-GET /documents
-```
-Get a list of all uploaded documents with processing method information.
+## License
 
-### Delete Document
-```http
-DELETE /documents/{document_id}
-```
-Delete a specific document from the knowledge base.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## Usage Example
+## Acknowledgments
 
-### 1. Upload a PDF (Standard Processing)
-```bash
-curl -X POST "http://localhost:8000/upload" \
-  -H "accept: application/json" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@your_document.pdf"
-```
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [ChromaDB](https://www.trychroma.com/)
+- [Azure OpenAI](https://azure.microsoft.com/en-us/services/openai/)
+- [LangChain](https://langchain.com/)
+- [PyPDF2](https://pypi.org/project/PyPDF2/)
+- [pdf2image](https://pypi.org/project/pdf2image/)
 
-### 2. Upload a PDF (Vision-Enhanced Processing)
-```bash
-curl -X POST "http://localhost:8000/upload-vision" \
-  -H "accept: application/json" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@your_document.pdf"
-```
+---
 
-### 3. Ask a Question
-```bash
-curl -X POST "http://localhost:8000/ask" \
-  -H "accept: application/json" \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What are the main findings?"}'
-```
-
-## How It Works
-
-### Standard Processing Flow:
-1. **Document Processing**: PDFs are processed using PyPDF2 to extract text
-2. **Text Chunking**: Documents are split into manageable chunks using LangChain's text splitter
-3. **Embedding Generation**: Text chunks are converted to embeddings using sentence-transformers
-4. **Vector Storage**: Embeddings are stored in ChromaDB for efficient similarity search
-5. **Question Answering**: When a question is asked, the system:
-   - Converts the question to an embedding
-   - Finds the most similar document chunks
-   - Uses the context to generate an answer (with OpenAI API or fallback method)
-
-### Vision-Enhanced Processing Flow:
-1. **PDF to Images**: PDFs are converted to high-quality images using pdf2image
-2. **Azure OpenAI Vision Analysis**: Each image is analyzed using Azure OpenAI's Vision API to:
-   - Extract all text content with better accuracy
-   - Understand document structure and visual elements
-   - Identify key insights, topics, and entities
-   - Analyze charts, tables, and diagrams
-3. **Enhanced Text Chunking**: Vision analysis results are structured and chunked for better context
-4. **Vector Storage**: Enhanced text chunks with vision insights are stored in ChromaDB
-5. **Question Answering**: Same as standard flow but with richer context from vision analysis
-
-## Technologies Used
-
-- **FastAPI**: Web framework for the API
-- **ChromaDB**: Vector database for storing embeddings
-- **sentence-transformers**: For generating embeddings
-- **PyPDF2**: For PDF text extraction (standard processing)
-- **pdf2image**: For converting PDF pages to images (vision processing)
-- **Pillow**: For image processing and manipulation
-- **Azure OpenAI**: For vision-based document analysis and understanding
-- **LangChain**: For text processing and splitting
-- **OpenAI API** (optional): For advanced question answering
-
-## Configuration
-
-The system can be configured through environment variables:
-
-- `OPENAI_API_KEY`: Your OpenAI API key (optional)
-- `CHROMA_DB_PATH`: Path to store the ChromaDB database
-- `HOST`: Server host (default: 0.0.0.0)
-- `PORT`: Server port (default: 8000)
-- `EMBEDDING_MODEL`: Sentence transformer model to use
-- `CHUNK_SIZE`: Size of text chunks for processing
-- `CHUNK_OVERLAP`: Overlap between text chunks
-
-## Notes
-
-- If no OpenAI API key is provided, the system uses a simple keyword-based fallback method for answering questions
-- The vector database is persisted locally in the `chroma_db` directory
-- Supports only PDF files currently
-- CORS is enabled for all origins in development
+For any questions or issues, please open an issue in the repository or contact the maintainer.
