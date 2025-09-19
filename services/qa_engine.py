@@ -32,20 +32,6 @@ extension_config = dict(
 )
 
 
-GROUNDED_PROMPT = """
-You are a helpful assistant answering questions based strictly on the documents provided.
-
-- Use only the information from the sources below to answer the query.
-- Respond in clear, concise bullet points.
-- Do NOT include any information that is not explicitly stated in the sources.
-- If the answer is not available in the provided sources, reply with: "I couldn’t find that information in the documents provided."
-
-Question:
-{text}
-
-"""
-
-
 def get_response(text: str, client: AzureOpenAI):
     """
     Uses Azure OpenAI with Azure Cognitive Search extensions to answer a question
@@ -53,8 +39,8 @@ def get_response(text: str, client: AzureOpenAI):
     """
     response = client.chat.completions.create(
         model=azure_oai_deployment,
-        temperature=0.3,  # ลดลงเล็กน้อยเพื่อให้ภาษาสม่ำเสมอแต่ยังยืดหยุ่น
-        max_tokens=600,
+        temperature=0.3,
+        max_tokens=700,
         messages=[
             {
                 "role": "system",
@@ -82,11 +68,11 @@ def get_response(text: str, client: AzureOpenAI):
                 "role": "user",
                 "content": f"""
             Answer this question using ONLY the provided documents.
-            
+
             **IMPORTANT: Respond in the same language as the question.**
-            
+
             Question: {text}
-            
+
             Provide a detailed answer with clear formatting.
             """,
             },
