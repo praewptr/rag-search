@@ -31,9 +31,9 @@ def run_uvicorn() -> None:
                 "uvicorn",
                 "ai_search_main:app",
                 "--host",
-                "127.0.0.1",
+                "0.0.0.0",
                 "--port",
-                "8000",
+                "5098",
                 "--reload",
             ]
         )

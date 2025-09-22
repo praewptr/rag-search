@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG PDF Search Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .search-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            margin-bottom: 30px;
+        }
+        
+        .search-form {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            flex: 1;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2980b9, #3498db);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            display: none;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .results-header h3 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+        }
+        
+        .search-meta {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .document-item {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            transition: transform 0.2s;
+        }
+        
+        .document-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .document-rank {
+            display: inline-block;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .document-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .document-score {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .document-url {
+            color: #3498db;
+            text-decoration: none;
+            word-break: break-all;
+            font-size: 0.9rem;
+        }
+        
+        .document-url:hover {
+            text-decoration: underline;
+        }
+        
+        .no-url {
+            color: #e74c3c;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+            margin-bottom: 20px;
+        }
+        
+        .api-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #bee5eb;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .search-form {
+                flex-direction: column;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 RAG PDF Search Client</h1>
+        
+        <div class="api-info">
+            <strong>API Status:</strong> <span id="apiStatus">Checking...</span> | 
+            <strong>Documents:</strong> <span id="docCount">Loading...</span>
+        </div>
+        
+        <div class="search-section">
+            <h2>Search Documents</h2>
+            <form id="searchForm" class="search-form">
+                <div class="form-group">
+                    <label for="searchQuery">Search Query:</label>
+                    <input type="text" id="searchQuery" placeholder="e.g., manual, admin, time attendance" required>
+                </div>
+                <div class="form-group">
+                    <label for="topK">Top Results:</label>
+                    <select id="topK">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3" selected>3</option>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" id="searchBtn">
+                        🔍 Search
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h3 id="resultsTitle">Search Results</h3>
+                <div class="search-meta" id="searchMeta"></div>
+            </div>
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkApiHealth();
+            loadDocumentCount();
+            
+            // Add form submit handler
+            document.getElementById('searchForm').addEventListener('submit', handleSearch);
+        });
+        
+        async function checkApiHealth() {
+            const statusEl = document.getElementById('apiStatus');
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    statusEl.innerHTML = '<span style="color: #27ae60;">✅ Healthy</span>';
+                } else {
+                    statusEl.innerHTML = '<span style="color: #f39c12;">⚠️ Degraded</span>';
+                }
+            } catch (error) {
+                statusEl.innerHTML = '<span style="color: #e74c3c;">❌ Offline</span>';
+            }
+        }
+        
+        async function loadDocumentCount() {
+            const countEl = document.getElementById('docCount');
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents`);
+                const data = await response.json();
+                countEl.textContent = `${data.total_documents} PDFs`;
+            } catch (error) {
+                countEl.textContent = 'Unknown';
+            }
+        }
+        
+        async function handleSearch(event) {
+            event.preventDefault();
+            
+            const query = document.getElementById('searchQuery').value.trim();
+            const topK = parseInt(document.getElementById('topK').value);
+            const searchBtn = document.getElementById('searchBtn');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+            
+            // Show loading
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<div class="spinner"></div> Searching...';
+            resultsSection.style.display = 'block';
+            resultsContainer.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching for documents...</p></div>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: topK
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+                
+            } catch (error) {
+                resultsContainer.innerHTML = `
+                    <div class="error">
+                        <strong>Search Failed:</strong> ${error.message}
+                        <br><small>Make sure the API server is running on ${API_BASE_URL}</small>
+                    </div>
+                `;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '🔍 Search';
+            }
+        }
+        
+        function displayResults(data) {
+            const resultsTitle = document.getElementById('resultsTitle');
+            const searchMeta = document.getElementById('searchMeta');
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            // Update header
+            resultsTitle.textContent = `🏆 Top ${data.documents.length} Results`;
+            searchMeta.innerHTML = `
+                Query: "<strong>${data.query}</strong>" | 
+                ${data.total_results} results | 
+                ${data.search_time_ms.toFixed(0)}ms
+            `;
+            
+            // Display results
+            if (data.documents.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <h3>No documents found</h3>
+                        <p>Try different search terms or check your query spelling.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = data.documents.map(doc => `
+                <div class="document-item">
+                    <div class="document-rank">Rank #${doc.rank}</div>
+                    <div class="document-title">${doc.title}</div>
+                    <div class="document-score">Score: ${doc.score.toFixed(4)}</div>
+                    <div>
+                        ${doc.url ? 
+                            `<a href="${doc.url}" target="_blank" class="document-url">${doc.url}</a>` :
+                            '<span class="no-url">❌ URL not available in mapping</span>'
+                        }
+                    </div>
+                    ${doc.id ? `<div style="margin-top: 8px; color: #666; font-size: 0.8rem;">ID: ${doc.id}</div>` : ''}
+                </div>
+            `).join('');
+            
+            resultsContainer.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
