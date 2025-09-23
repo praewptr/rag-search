@@ -1,42 +1,16 @@
-from services.config import (
-    azure_search_endpoint,
-    azure_search_key,
-    azure_search_index,
-    azure_oai_deployment,
-    azure_oai_endpoint,
-    azure_oai_key,
-)
 import json
 from openai import AzureOpenAI
-
-# Configure your data source
-
-extension_config = dict(
-    dataSources=[
-        {
-            "type": "AzureCognitiveSearch",
-            "parameters": {
-                "endpoint": azure_search_endpoint,
-                "key": azure_search_key,
-                "indexName": azure_search_index,
-            },
-            "fields_mapping": {
-                "content_field": "content",
-                "filepath_field": "filepath",
-                "title_field": "title",
-                "url_field": "url",
-                "vector_field": "contentVector",
-            },
-        }
-    ]
-)
+import os
 
 
-def get_response(text: str, client: AzureOpenAI):
-    """
-    Uses Azure OpenAI with Azure Cognitive Search extensions to answer a question
-    using retrieved documents automatically — no document IDs needed.
-    """
+def get_response(
+    text: str,
+    client: AzureOpenAI,
+    azure_oai_deployment: str,
+    azure_oai_endpoint: str,
+    extension_config: dict,
+):
+
     response = client.chat.completions.create(
         model=azure_oai_deployment,
         temperature=0.3,
