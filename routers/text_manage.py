@@ -7,50 +7,16 @@ from models.upload_txt import (
 )
 from services.azure_upload import process_and_upload, process_and_upload_batch
 from services.client import search_client_text
+from utils.text_manage import (
+    load_mock_data,
+    process_documents,
+    save_mock_data,
+    validate_document,
+)
 
 router = APIRouter()
 
 MOCK_DB_FILE = "rag_text.json"
-
-
-# Helper function for document validation
-def validate_document(document: DocumentItem):
-    if not document.content.strip():
-        raise HTTPException(status_code=400, detail="Document content cannot be empty")
-    if not document.source.strip():
-        raise HTTPException(status_code=400, detail="Document source cannot be empty")
-
-
-# Helper function for processing and uploading documents
-def process_documents(documents):
-    successful_uploads = 0
-    failed_uploads = []
-
-    for i, doc_item in enumerate(documents):
-        try:
-            validate_document(doc_item)
-
-            json_data = {
-                "content": doc_item.content,
-                "source": doc_item.source,
-                "timestamp": doc_item.timestamp,
-            }
-
-            result = process_and_upload(json_data)
-
-            if result:
-                successful_uploads += 1
-            else:
-                failed_uploads.append(
-                    f"Document {i + 1} ({doc_item.source}): Upload failed"
-                )
-
-        except Exception as doc_error:
-            failed_uploads.append(
-                f"Document {i + 1} ({doc_item.source}): {str(doc_error)}"
-            )
-
-    return successful_uploads, failed_uploads
 
 
 # API Endpoints
