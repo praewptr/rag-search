@@ -1,16 +1,39 @@
 import json
+
 from openai import AzureOpenAI
-import os
+
+from config import (
+    azure_oai_deployment,
+    azure_search_endpoint,
+    azure_search_index_doc,
+    azure_search_key,
+)
+
+extension_config = dict(
+    dataSources=[
+        {
+            "type": "AzureCognitiveSearch",
+            "parameters": {
+                "endpoint": azure_search_endpoint,
+                "key": azure_search_key,
+                "indexName": azure_search_index_doc,
+            },
+            "fields_mapping": {
+                "content_field": "content",
+                "filepath_field": "filepath",
+                "title_field": "title",
+                "url_field": "url",
+                "vector_field": "contentVector",
+            },
+        }
+    ]
+)
 
 
 def get_response(
     text: str,
     client: AzureOpenAI,
-    azure_oai_deployment: str,
-    azure_oai_endpoint: str,
-    extension_config: dict,
 ):
-
     response = client.chat.completions.create(
         model=azure_oai_deployment,
         temperature=0.3,

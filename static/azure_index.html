@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Search Index Browser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #f8f9fa;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .search-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .search-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 12px 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: #6c757d;
+            box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .index-selector {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .index-selector h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+        }
+
+        .selector-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .create-index-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            transform: scale(1.2);
+            accent-color: #495057;
+        }
+
+        .index-dropdown {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            background: white;
+        }
+
+        .index-dropdown:focus {
+            border-color: #6c757d;
+            box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.1);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f8f9fa;
+            border-color: #6c757d;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .current-page {
+            background: #495057;
+            color: white;
+            border-color: #495057;
+        }
+
+        .document-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .document-item {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .document-item:hover {
+            border-color: #6c757d;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .document-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .document-id {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .delete-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .delete-btn:hover {
+            background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        .document-source {
+            font-weight: normal;
+            color: #888;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .document-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left: 4px solid #2196f3;
+            border-radius: 5px;
+        }
+
+        .title-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 5px solid #007bff;
+        }
+
+        .title-item:hover {
+            border-left: 5px solid #0056b3;
+            box-shadow: 0 8px 25px rgba(0,123,255,0.15);
+        }
+
+        .document-title-main {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 8px;
+        }
+
+        .title-info {
+            margin-top: 10px;
+        }
+
+        .title-badge {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .document-content {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 500;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4f8 100%);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #495057;
+        }
+
+        .document-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: #999;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .document-timestamp {
+            font-style: italic;
+        }
+
+        .chunk-id {
+            background: #f8f9fa;
+            padding: 2px 8px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            font-family: monospace;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #6c757d;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-input {
+                min-width: auto;
+            }
+
+            .btn {
+                text-align: center;
+            }
+
+            .results-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .document-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .document-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Azure Index Documents</h1>
+            <p>Browse and manage your Azure AI Search text index documents</p>
+        </div>
+        
+        <div class="content">
+            <!-- Message area -->
+            <div id="message" class="message"></div>
+            
+            <!-- Index Selection Section -->
+            <div class="index-selector">
+                <h3>🎯 Select Index</h3>
+                <div class="selector-container">
+                    <select id="indexDropdown" class="index-dropdown">
+                        <option value="">Loading indexes...</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="switchIndex()">
+                        📋 Load Index
+                    </button>
+                    <button class="btn" onclick="deleteCurrentIndex()" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                        🗑️ Delete Index
+                    </button>
+                </div>
+            </div>
+
+            <!-- Create Index Section -->
+            <div class="index-selector">
+                <h3>🔧 Create New Index</h3>
+                <div class="selector-container">
+                    <input type="text" id="newIndexName" class="search-input" placeholder="Enter new index name (lowercase, hyphens allowed)..." style="flex: 2; min-width: 300px;">
+                    <div class="create-index-controls">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="forceRecreate">
+                            <span>Force recreate if exists</span>
+                        </label>
+                        <button class="btn btn-info" onclick="createIndex()">
+                            ➕ Create Index
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats Section -->
+            <div class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalDocs">0</div>
+                    <div>Total Documents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="indexName">-</div>
+                    <div>Index Name</div>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="results-section">
+                <div class="results-header">
+                    <h3 id="resultsTitle">Search Results</h3>
+                    <div class="pagination" id="pagination">
+                        <!-- Pagination will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Loading -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Searching index...</p>
+                </div>
+                
+                <!-- Results Grid -->
+                <div class="document-grid" id="resultsGrid">
+                    <!-- Results will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let pageSize = 20;
+        let totalResults = 0;
+        let selectedIndex = null;
+
+        // Load index stats and available indexes on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadAvailableIndexes();
+            setupIndexNameValidation();
+        });
+
+        function setupIndexNameValidation() {
+            const indexNameInput = document.getElementById('newIndexName');
+            const createButton = document.querySelector('button[onclick="createIndex()"]');
+            
+            indexNameInput.addEventListener('input', function() {
+                const indexName = this.value.trim();
+                const isValid = validateIndexName(indexName);
+                
+                if (indexName && !isValid) {
+                    this.style.borderColor = '#dc3545';
+                    this.title = 'Index name must be 2-60 characters, lowercase letters, numbers, and hyphens only. Cannot start or end with hyphen.';
+                    createButton.disabled = true;
+                    createButton.style.opacity = '0.6';
+                } else {
+                    this.style.borderColor = indexName ? '#28a745' : '#dee2e6';
+                    this.title = '';
+                    createButton.disabled = false;
+                    createButton.style.opacity = '1';
+                }
+            });
+        }
+
+        function validateIndexName(indexName) {
+            if (!indexName || indexName.length < 2 || indexName.length > 60) {
+                return false;
+            }
+            if (!/^[a-z0-9-]+$/.test(indexName)) {
+                return false;
+            }
+            if (indexName.startsWith('-') || indexName.endsWith('-')) {
+                return false;
+            }
+            return true;
+        }
+
+        async function loadAvailableIndexes() {
+            try {
+                const response = await fetch('/azure-index/indexes');
+                if (response.ok) {
+                    const data = await response.json();
+                    const dropdown = document.getElementById('indexDropdown');
+                    
+                    dropdown.innerHTML = '';
+                    
+                    data.indexes.forEach(index => {
+                        const option = document.createElement('option');
+                        option.value = index.name;
+                        option.textContent = index.name;
+                        dropdown.appendChild(option);
+                    });
+                    
+                    // Set default selection
+                    if (data.default_index) {
+                        dropdown.value = data.default_index;
+                        selectedIndex = data.default_index;
+                        // Auto-load the default index
+                        await loadIndexStats();
+                        await loadDocuments();
+                    }
+                    
+                } else {
+                    document.getElementById('indexDropdown').innerHTML = '<option value="">Failed to load indexes</option>';
+                }
+            } catch (error) {
+                console.error('Error loading indexes:', error);
+                document.getElementById('indexDropdown').innerHTML = '<option value="">Error loading indexes</option>';
+            }
+        }
+
+        async function createIndex() {
+            const indexNameInput = document.getElementById('newIndexName');
+            const forceRecreateCheckbox = document.getElementById('forceRecreate');
+
+            const indexName = indexNameInput.value.trim();
+            if (!indexName) {
+                showMessage('Please enter an index name', 'error');
+                indexNameInput.focus();
+                return;
+            }
+
+            // Validate index name
+            if (!validateIndexName(indexName)) {
+                showMessage('Index name must be 2-60 characters, lowercase letters, numbers, and hyphens only. Cannot start or end with hyphen.', 'error');
+                indexNameInput.focus();
+                return;
+            }
+
+            const forceRecreate = forceRecreateCheckbox.checked;
+
+            try {
+                showLoading(true);
+                showMessage(`Creating index: ${indexName}...`, 'info');
+
+                const response = await fetch('/azure-index/create-index', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: indexName,
+                        force_recreate: forceRecreate,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    await loadAvailableIndexes(); // Refresh the index list
+                } else if (result.status === 'exists') {
+                    showMessage(`ℹ️ ${result.message}`, 'info');
+                } else {
+                    showMessage(`❌ ${result.message}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error creating index:', error);
+                showMessage(`❌ Failed to create index: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function switchIndex() {
+            const dropdown = document.getElementById('indexDropdown');
+            selectedIndex = dropdown.value;
+            
+            if (!selectedIndex) {
+                showMessage('Please select an index', 'error');
+                return;
+            }
+            
+            showMessage(`Switching to index: ${selectedIndex}`, 'info');
+            await loadIndexStats();
+            await loadDocuments();
+        }
+
+        async function deleteCurrentIndex() {
+            const dropdown = document.getElementById('indexDropdown');
+            const indexToDelete = dropdown.value;
+            
+            if (!indexToDelete) {
+                showMessage('Please select an index to delete', 'error');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete the entire index "${indexToDelete}"? This will permanently delete ALL documents in the index. This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                showLoading(true);
+                showMessage(`Deleting index: ${indexToDelete}...`, 'info');
+
+                const response = await fetch(`/azure-index/index/${encodeURIComponent(indexToDelete)}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                showMessage(result.message, 'success');
+                
+                // Reset the interface
+                selectedIndex = null;
+                document.getElementById('totalDocs').textContent = '0';
+                document.getElementById('indexName').textContent = '-';
+                document.getElementById('resultsGrid').innerHTML = '';
+                document.getElementById('pagination').innerHTML = '';
+                
+                // Refresh the index list
+                await loadAvailableIndexes();
+
+            } catch (error) {
+                console.error('Error deleting index:', error);
+                showMessage(`Failed to delete index: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function loadIndexStats() {
+            if (!selectedIndex) return;
+            
+            try {
+                const url = `/azure-index/index-stats?index_name=${encodeURIComponent(selectedIndex)}`;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('totalDocs').textContent = stats.total_documents;
+                    document.getElementById('indexName').textContent = stats.index_name;
+                }
+            } catch (error) {
+                console.error('Error loading index stats:', error);
+            }
+        }
+
+        async function loadDocuments() {
+            if (!selectedIndex) {
+                showMessage('Please select an index first', 'error');
+                return;
+            }
+            
+            currentPage = 1;
+            showLoading(true);
+            hideMessage();
+
+            try {
+                const url = `/azure-index/browse?page=${currentPage}&page_size=${pageSize}&index_name=${encodeURIComponent(selectedIndex)}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Check if this is a title list response or standard document response
+                if (data.titles && Array.isArray(data.titles)) {
+                    // Title list response
+                    totalResults = data.total_count;
+                    renderResults(data, 'Document Titles');
+                    updatePagination();
+                    showMessage(`Loaded ${data.titles.length} unique document titles (${totalResults} total)`, 'success');
+                } else if (data.results && Array.isArray(data.results)) {
+                    // Standard document response
+                    totalResults = data.total_count;
+                    renderResults(data.results, 'All Documents');
+                    updatePagination();
+                    showMessage(`Loaded ${data.results.length} documents (${totalResults} total)`, 'success');
+                } else {
+                    throw new Error('Invalid response format');
+                }
+
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                showMessage('Failed to load documents: ' + error.message, 'error');
+                renderResults([], 'All Documents');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function deleteDocument(documentId) {
+            if (!selectedIndex) {
+                showMessage('No index selected', 'error');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete document "${documentId}" from index "${selectedIndex}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                showLoading(true);
+                
+                const url = `/azure-index/documents/${encodeURIComponent(documentId)}?index_name=${encodeURIComponent(selectedIndex)}`;
+                const response = await fetch(url, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                showMessage(result.message, 'success');
+                
+                // Reload documents and stats after deletion
+                await loadDocuments();
+                await loadIndexStats();
+
+            } catch (error) {
+                console.error('Error deleting document:', error);
+                showMessage('Failed to delete document: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function loadPage(page) {
+            if (!selectedIndex) {
+                showMessage('No index selected', 'error');
+                return;
+            }
+            
+            currentPage = page;
+            showLoading(true);
+
+            try {
+                const url = `/azure-index/browse?page=${page}&page_size=${pageSize}&index_name=${encodeURIComponent(selectedIndex)}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Check if this is a title list response or standard document response
+                if (data.titles && Array.isArray(data.titles)) {
+                    // Title list response
+                    renderResults(data, 'Document Titles');
+                    updatePagination();
+                } else if (data.results && Array.isArray(data.results)) {
+                    // Standard document response
+                    renderResults(data.results, 'All Documents');
+                    updatePagination();
+                } else {
+                    throw new Error('Invalid response format');
+                }
+
+            } catch (error) {
+                console.error('Error loading page:', error);
+                showMessage('Failed to load page: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderResults(results, title) {
+            const grid = document.getElementById('resultsGrid');
+            const titleElement = document.getElementById('resultsTitle');
+            
+            titleElement.textContent = title;
+
+            // Check if results is a title list (array of strings) or document results
+            if (results && results.titles && Array.isArray(results.titles)) {
+                // This is a title list response
+                renderTitleList(results.titles, title);
+                return;
+            } else if (Array.isArray(results)) {
+                // This is a standard document results array
+                renderDocumentResults(results, title);
+            } else {
+                // Handle empty or invalid results
+                grid.innerHTML = `
+                    <div class="no-results">
+                        <h3>📄 No Documents Found</h3>
+                        <p>No documents are currently stored in the index</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderTitleList(titles, title) {
+            const grid = document.getElementById('resultsGrid');
+            const titleElement = document.getElementById('resultsTitle');
+            
+            titleElement.textContent = `${title}`;
+
+            if (titles.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-results">
+                        <h3>📄 No Document Titles Found</h3>
+                        <p>No documents with titles are currently stored in the index</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = titles.map(documentTitle => `
+                <div class="document-item title-item">
+                    <div class="document-header">
+                        <div class="document-title-main">📋 ${escapeHtml(documentTitle)}</div>
+                    </div>
+                    <div class="title-info">
+                        <span class="title-badge">Document Title</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderDocumentResults(results, title) {
+            const grid = document.getElementById('resultsGrid');
+
+            if (results.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-results">
+                        <h3>📄 No Documents Found</h3>
+                        <p>No documents are currently stored in the index</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = results.map(doc => `
+                <div class="document-item">
+                    <div class="document-header">
+                        <div class="document-id">ID: ${escapeHtml(doc.id)}</div>
+                        <button class="delete-btn" onclick="deleteDocument('${escapeHtml(doc.id)}')" title="Delete document">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                    
+                    ${doc.title ? `<div class="document-title">📋 ${escapeHtml(doc.title)}</div>` : ''}
+                    <div class="document-source">📄 ${escapeHtml(doc.source)}</div>
+                    <div class="document-content">${escapeHtml(doc.content)}</div>
+                    
+                    <div class="document-meta">
+                        <div class="document-timestamp">📅 ${formatTimestamp(doc.timestamp)}</div>
+                        ${doc.chunk_id ? `<div class="chunk-id">${escapeHtml(doc.chunk_id)}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(totalResults / pageSize);
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+
+            // Previous button
+            paginationHTML += `<button onclick="loadPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>‹ Previous</button>`;
+
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `<button onclick="loadPage(${i})" class="${i === currentPage ? 'current-page' : ''}">${i}</button>`;
+            }
+
+            // Next button
+            paginationHTML += `<button onclick="loadPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>Next ›</button>`;
+
+            // Page info
+            paginationHTML += `<span style="margin-left: 15px; color: #666;">Page ${currentPage} of ${totalPages}</span>`;
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const grid = document.getElementById('resultsGrid');
+            
+            if (show) {
+                loading.classList.add('active');
+                grid.style.display = 'none';
+            } else {
+                loading.classList.remove('active');
+                grid.style.display = 'grid';
+            }
+        }
+
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = `message ${type} show`;
+            
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        function hideMessage() {
+            const message = document.getElementById('message');
+            message.classList.remove('show');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTimestamp(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString();
+            } catch (error) {
+                return timestamp;
+            }
+        }
+    </script>
+</body>
+</html>

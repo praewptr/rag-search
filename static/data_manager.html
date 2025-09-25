@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Data Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f8f9fa;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .documents-grid {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .document-card {
+            border: 2px solid #dee2e6;
+            border-radius: 15px;
+            padding: 20px 20px 55px 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            background: white;
+            cursor: pointer;
+        }
+
+        .document-card:hover {
+            border-color: #6c757d;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+
+        .document-card.selected {
+            border-color: #28a745 !important;
+            background: linear-gradient(135deg, #f8fff8 0%, #f0f8f0 100%) !important;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.2) !important;
+            transform: translateY(-2px) !important;
+        }
+
+        .document-card.selected::before {
+            content: '✓ SELECTED';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 5;
+        }
+
+        .document-header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .document-actions {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .document-actions .btn {
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .btn-sm {
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .document-source {
+            font-weight: normal;
+            color: #888;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .document-content {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 500;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4f8 100%);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #495057;
+        }
+
+        .document-timestamp {
+            font-size: 0.9em;
+            color: #999;
+            font-style: italic;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #6c757d;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .no-documents {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .no-documents img {
+            max-width: 200px;
+            opacity: 0.5;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn {
+                text-align: center;
+                margin-bottom: 10px;
+            }
+
+            .document-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+
+            .document-actions {
+                position: static;
+                justify-content: center;
+                margin-top: 15px;
+            }
+
+            .document-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 RAG Data Manager</h1>
+            <p>Manage your documents before uploading to Azure AI Search</p>
+        </div>
+        
+        <div class="content">
+            <!-- Message area -->
+            <div id="message" class="message"></div>
+            
+            <!-- Actions -->
+            <div class="actions">
+                <div>
+                    <button class="btn btn-primary" onclick="loadDocuments()">
+                        🔄 Refresh Data
+                    </button>
+                    <button class="btn btn-info" onclick="selectAll()">
+                        ☑️ Select All
+                    </button>
+                    <button class="btn btn-info" onclick="deselectAll()">
+                        ☐ Deselect All
+                    </button>
+                </div>
+                <div>
+                    <button class="btn btn-success" onclick="uploadSelectedToAzure()" id="uploadBtn" disabled>
+                        ☁️ Upload Selected to Azure
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteSelected()" id="deleteBtn" disabled>
+                        🗑️ Delete Selected
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalDocs">0</div>
+                    <div>Total Documents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="selectedDocs">0</div>
+                    <div>Selected</div>
+                </div>
+            </div>
+            
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading documents...</p>
+            </div>
+            
+            <!-- Documents -->
+            <div class="documents-grid" id="documentsGrid">
+                <!-- Documents will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let documents = [];
+        let selectedDocuments = new Set();
+        let selectedArray = []; // Backup array for debugging
+
+        // Force a fresh Set on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            selectedDocuments = new Set(); // Reset the Set
+            selectedArray = []; // Reset the array
+            console.log('Initialized selectedDocuments Set:', selectedDocuments);
+            console.log('Initialized selectedArray:', selectedArray);
+            loadDocuments();
+        });
+
+        // Test function to verify Set is working
+        function testSet() {
+            console.log('Testing Set functionality...');
+            const testSet = new Set();
+            testSet.add('1');
+            testSet.add('2');
+            console.log('Test Set:', Array.from(testSet));
+            console.log('testSet.has("1"):', testSet.has('1'));
+            console.log('testSet.has("2"):', testSet.has('2'));
+            
+            console.log('Current selectedDocuments:', Array.from(selectedDocuments));
+            return testSet;
+        }
+
+        async function loadDocuments() {
+            showLoading(true);
+            hideMessage();
+            
+            try {
+                const response = await fetch('/text-manage/text');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                documents = data.value || [];
+                
+                renderDocuments();
+                updateStats();
+                showMessage('Documents loaded successfully!', 'success');
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                showMessage('Failed to load documents: ' + error.message, 'error');
+                documents = [];
+                renderDocuments();
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderDocuments() {
+            const grid = document.getElementById('documentsGrid');
+            
+            if (documents.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-documents">
+                        <h3>📄 No Documents Found</h3>
+                        <p>Load your data from the mock database file (rag_text.json)</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = documents.map(doc => `
+                <div class="document-card ${selectedDocuments.has(String(doc.id)) ? 'selected' : ''}" 
+                     id="doc-${doc.id}" 
+                     onclick="toggleDocumentClick(event, '${doc.id}')">
+                    
+                    <div class="document-source">${escapeHtml(doc.source)}</div>
+                    <div class="document-content">${escapeHtml(doc.content.substring(0, 200))}${doc.content.length > 200 ? '...' : ''}</div>
+                    <div class="document-timestamp">📅 ${formatTimestamp(doc.timestamp)}</div>
+                    
+                    <div class="document-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc.id}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleDocumentClick(event, docId) {
+            // Prevent toggle if clicking on action buttons
+            if (event.target.closest('.document-actions')) {
+                return;
+            }
+            
+            // Ensure docId is treated consistently (convert to string)
+            docId = String(docId);
+            console.log('Card click toggle:', docId, typeof docId);
+            
+            // Toggle selection
+            if (selectedDocuments.has(docId)) {
+                selectedDocuments.delete(docId);
+                const index = selectedArray.indexOf(docId);
+                if (index > -1) selectedArray.splice(index, 1);
+                console.log('Removed from selection via card click:', docId);
+            } else {
+                selectedDocuments.add(docId);
+                if (!selectedArray.includes(docId)) selectedArray.push(docId);
+                console.log('Added to selection via card click:', docId);
+            }
+            
+            // Update the specific card immediately
+            updateDocumentSelection(docId);
+            updateStats();
+            updateButtons();
+            
+            console.log('After card click - selectedDocuments:', Array.from(selectedDocuments));
+            console.log('After card click - selectedArray:', selectedArray);
+        }
+
+        function updateDocumentSelection(docId) {
+            // Ensure docId is treated consistently (convert to string)
+            docId = String(docId);
+            
+            const card = document.getElementById(`doc-${docId}`);
+            if (!card) {
+                console.warn('Card not found for docId:', docId);
+                return;
+            }
+            
+            if (selectedDocuments.has(docId)) {
+                card.classList.add('selected');
+                console.log('Selected card (visual only):', docId);
+            } else {
+                card.classList.remove('selected');
+                console.log('Deselected card (visual only):', docId);
+            }
+        }
+
+        function selectAll() {
+            selectedDocuments.clear(); // Clear first to ensure clean state
+            selectedArray.length = 0; // Clear backup array
+            
+            documents.forEach(doc => {
+                const docId = String(doc.id);
+                selectedDocuments.add(docId); // Ensure string type
+                selectedArray.push(docId); // Add to backup array
+            });
+            
+            console.log('Select all - total selected in Set:', selectedDocuments.size);
+            console.log('Select all - total selected in Array:', selectedArray.length);
+            renderDocuments(); // Re-render to ensure consistent state
+            updateStats();
+            updateButtons();
+        }
+
+        function deselectAll() {
+            selectedDocuments.clear();
+            selectedArray.length = 0; // Clear backup array
+            console.log('Deselect all - cleared both Set and Array');
+            renderDocuments(); // Re-render to ensure consistent state
+            updateStats();
+            updateButtons();
+        }
+
+        function updateStats() {
+            console.log('updateStats called - selectedDocuments.size:', selectedDocuments.size);
+            console.log('updateStats called - selectedArray.length:', selectedArray.length);
+            console.log('selectedDocuments contents:', Array.from(selectedDocuments));
+            console.log('selectedArray contents:', selectedArray);
+            
+            document.getElementById('totalDocs').textContent = documents.length;
+            // Use array length as backup
+            const displayCount = Math.max(selectedDocuments.size, selectedArray.length);
+            document.getElementById('selectedDocs').textContent = displayCount;
+            console.log('Updated selectedDocs display to:', displayCount);
+        }
+
+        function updateButtons() {
+            const hasSelection = selectedDocuments.size > 0;
+            document.getElementById('uploadBtn').disabled = !hasSelection;
+            document.getElementById('deleteBtn').disabled = !hasSelection;
+        }
+
+        async function deleteDocument(docId) {
+            if (!confirm('Are you sure you want to delete this document?')) {
+                return;
+            }
+
+            showLoading(true);
+            
+            try {
+                const response = await fetch(`/text-manage/text/${docId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Remove from selected documents
+                selectedDocuments.delete(String(docId));
+                
+                // Reload documents
+                await loadDocuments();
+                showMessage('Document deleted successfully!', 'success');
+            } catch (error) {
+                console.error('Error deleting document:', error);
+                showMessage('Failed to delete document: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function deleteSelected() {
+            if (selectedDocuments.size === 0 && selectedArray.length === 0) {
+                showMessage('Please select documents to delete', 'error');
+                return;
+            }
+
+            const deleteCount = Math.max(selectedDocuments.size, selectedArray.length);
+            if (!confirm(`Are you sure you want to delete ${deleteCount} selected documents?`)) {
+                return;
+            }
+
+            console.log('Starting bulk delete for:', Array.from(selectedDocuments));
+            console.log('Backup array:', selectedArray);
+
+            showLoading(true);
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Use Set if it has items, otherwise use backup array
+            const idsToDelete = selectedDocuments.size > 0 ? selectedDocuments : new Set(selectedArray);
+
+            for (const docId of idsToDelete) {
+                try {
+                    console.log(`Deleting document: ${docId}`);
+                    const response = await fetch(`/text-manage/text/${docId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                        console.log(`Successfully deleted: ${docId}`);
+                    } else {
+                        errorCount++;
+                        console.error(`Failed to delete: ${docId}, status: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error(`Error deleting document ${docId}:`, error);
+                    errorCount++;
+                }
+            }
+
+            // Clear both tracking mechanisms
+            selectedDocuments.clear();
+            selectedArray.length = 0;
+            
+            await loadDocuments();
+            
+            if (errorCount === 0) {
+                showMessage(`Successfully deleted ${successCount} documents!`, 'success');
+            } else {
+                showMessage(`Deleted ${successCount} documents, ${errorCount} failed`, 'error');
+            }
+            
+            showLoading(false);
+            console.log('Bulk delete completed');
+        }
+
+        async function uploadSelectedToAzure() {
+            if (selectedDocuments.size === 0 && selectedArray.length === 0) {
+                showMessage('Please select documents to upload', 'error');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                // Get selected documents data - use String conversion for consistency
+                const selectedDocs = documents.filter(doc => 
+                    selectedDocuments.has(String(doc.id)) || selectedArray.includes(String(doc.id))
+                );
+
+                console.log('Uploading documents:', selectedDocs);
+                console.log('Selected IDs:', Array.from(selectedDocuments));
+                console.log('Backup Array:', selectedArray);
+
+                if (selectedDocs.length === 0) {
+                    throw new Error('No documents found for selected IDs');
+                }
+
+                // Prepare the payload to match the API expectations
+                const payload = {
+                    value: selectedDocs.map(doc => ({
+                        content: doc.content || '',
+                        source: doc.source || 'unknown',
+                        timestamp: doc.timestamp || new Date().toISOString()
+                    }))
+                };
+
+                console.log('Payload being sent:', JSON.stringify(payload, null, 2));
+
+                const response = await fetch('/text-manage/upload-text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Upload error response:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('Upload result:', result);
+                showMessage(`${result.message} (${result.uploaded_count || result.successful_uploads || selectedDocs.length} documents)`, 'success');
+                
+                // Clear selection after successful upload
+                deselectAll();
+                
+            } catch (error) {
+                console.error('Error uploading to Azure:', error);
+                showMessage('Failed to upload to Azure: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.add('active');
+            } else {
+                loading.classList.remove('active');
+            }
+        }
+
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = `message ${type} show`;
+            
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        function hideMessage() {
+            const message = document.getElementById('message');
+            message.classList.remove('show');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTimestamp(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString();
+            } catch (error) {
+                return timestamp;
+            }
+        }
+    </script>
+</body>
+</html>

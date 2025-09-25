@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG System Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f8f9fa;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 2px solid transparent;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border-color: #6c757d;
+        }
+
+        .tool-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .tool-card h3 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .tool-card p {
+            color: #6c757d;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+
+        .tool-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        .tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .features-list {
+            list-style: none;
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .features-list li {
+            padding: 5px 0;
+            color: #495057;
+        }
+
+        .features-list li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+
+        .api-section {
+            margin-top: 40px;
+            padding: 30px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .api-section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .api-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .api-link {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .api-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .api-links {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 RAG System Dashboard</h1>
+            <p>Your comprehensive toolkit for document management and AI search</p>
+        </div>
+        
+        <div class="content">
+            <div class="tools-grid">
+                <!-- Chat Interface -->
+                <div class="tool-card">
+                    <div class="tool-icon">💬</div>
+                    <h3>AI Chat Interface</h3>
+                    <p>Ask questions about your documents using intelligent retrieval and AI-powered responses.</p>
+                    <ul class="features-list">
+                        <li>Natural language queries</li>
+                        <li>Context-aware responses</li>
+                        <li>Multi-index search</li>
+                        <li>Real-time chat interface</li>
+                    </ul>
+                    <a href="/static/chatbot.html" class="tool-btn">Start Chatting</a>
+                </div>
+
+                <!-- Data Manager -->
+                <div class="tool-card">
+                    <div class="tool-icon">📋</div>
+                    <h3>Data Manager</h3>
+                    <p>Manage your document database before uploading to Azure AI Search.</p>
+                    <ul class="features-list">
+                        <li>Load from mock database</li>
+                        <li>Select & delete documents</li>
+                        <li>Batch operations</li>
+                        <li>Upload to Azure Search</li>
+                    </ul>
+                    <a href="/text-manager" class="tool-btn">Manage Data</a>
+                </div>
+
+                <!-- Azure Index Browser -->
+                <div class="tool-card">
+                    <div class="tool-icon">🔍</div>
+                    <h3>Azure Index Browser</h3>
+                    <p>Browse and search your Azure AI Search text index with advanced filtering.</p>
+                    <ul class="features-list">
+                        <li>Search existing documents</li>
+                        <li>Browse all indexed content</li>
+                        <li>Pagination & filtering</li>
+                        <li>Document details view</li>
+                    </ul>
+                    <a href="/azure-browser" class="tool-btn">Browse Index</a>
+                </div>
+            </div>
+
+            <!-- API Documentation Section -->
+            <div class="api-section">
+                <h2>🔧 API Documentation & Tools</h2>
+                <div class="api-links">
+                    <a href="/docs" class="api-link">📚 API Docs (Swagger)</a>
+                    <a href="/redoc" class="api-link">📖 API Docs (ReDoc)</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactive animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.tool-card');
+            
+            cards.forEach((card, index) => {
+                // Stagger the animation
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(30px)';
+                    card.style.transition = 'all 0.6s ease';
+                    
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>

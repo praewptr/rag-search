@@ -16,16 +16,16 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             color: #333;
         }
         
         .chat-container {
             width: 100%;
             max-width: 800px;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(248, 249, 250, 0.95);
             border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(10px);
             padding: 30px;
         }
@@ -162,14 +162,14 @@
         }
         
         .input-container input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #6c757d;
+            box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.1);
         }
         
         .input-container button {
             padding: 16px 24px;
             border: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
             color: white;
             border-radius: 25px;
             cursor: pointer;
@@ -180,7 +180,7 @@
         
         .input-container button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4);
         }
 
         /* Scrollbar styling */
@@ -236,80 +236,72 @@
         }
 
         async function sendMessage() {
-            const userInput = document.getElementById('user-input');
-            const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const chatBox = document.getElementById('chat-box');
 
-            const userMessage = userInput.value;
-            if (!userMessage) return;
+    const userMessage = userInput.value;
+    if (!userMessage) return;
 
-            // Display user message
-            const userMessageElement = document.createElement('div');
-            userMessageElement.className = 'message user';
-            userMessageElement.textContent = userMessage;
-            chatBox.appendChild(userMessageElement);
+    // Display user message
+    const userMessageElement = document.createElement('div');
+    userMessageElement.className = 'message user';
+    userMessageElement.textContent = userMessage;
+    chatBox.appendChild(userMessageElement);
 
-            // Clear input field
-            userInput.value = '';
+    // Clear input field
+    userInput.value = '';
 
-            // Display typing indicator
-            const typingIndicator = document.createElement('div');
-            typingIndicator.className = 'message bot typing';
-            typingIndicator.innerHTML = '🔍 Searching documents...';
-            chatBox.appendChild(typingIndicator);
+    // Display typing indicator
+    const typingIndicator = document.createElement('div');
+    typingIndicator.className = 'message bot typing';
+    typingIndicator.innerHTML = '🔍 Searching documents...';
+    chatBox.appendChild(typingIndicator);
 
-            try {
-                // Call the API
-                const response = await fetch('http://127.0.0.1:8000/aisearch', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ question: userMessage })
-                });
+    try {
+        // Call the API
+        const response = await fetch('http://127.0.0.1:5099/api/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ question: userMessage })
+        });
 
-                if (!response.ok) {
-                    throw new Error('Failed to get response from the server');
-                }
-
-                const data = await response.json();
-
-                // Remove typing indicator
-                chatBox.removeChild(typingIndicator);
-
-                // Display bot response with Markdown rendering
-                const botMessageElement = document.createElement('div');
-                botMessageElement.className = 'message bot';
-
-                const answerElement = document.createElement('div');
-                answerElement.className = 'answer';
-
-                // Render Markdown content instead of plain text
-                const renderedAnswer = renderMarkdown(data.answer);
-                answerElement.innerHTML = renderedAnswer;
-                botMessageElement.appendChild(answerElement);
-
-                // Display sources if available
-                if (data.sources && data.sources.length > 0) {
-                    const sourcesElement = document.createElement('div');
-                    sourcesElement.className = 'sources';
-                    sourcesElement.innerHTML = `📚 <strong>Sources:</strong> ${data.sources.join(', ')}`;
-                    botMessageElement.appendChild(sourcesElement);
-                }
-
-                chatBox.appendChild(botMessageElement);
-
-            } catch (error) {
-                console.error('Error:', error);
-                chatBox.removeChild(typingIndicator);
-                const errorMessageElement = document.createElement('div');
-                errorMessageElement.className = 'message bot';
-                errorMessageElement.innerHTML = '<div class="answer">❌ <strong>Error:</strong> Unable to get a response. Please try again.</div>';
-                chatBox.appendChild(errorMessageElement);
-            }
-
-            // Scroll to the bottom of the chat box
-            chatBox.scrollTop = chatBox.scrollHeight;
+        if (!response.ok) {
+            throw new Error('Failed to get response from the server');
         }
+
+        const data = await response.json();
+
+        // Remove typing indicator
+        chatBox.removeChild(typingIndicator);
+
+        // Display bot response with Markdown rendering
+        const botMessageElement = document.createElement('div');
+        botMessageElement.className = 'message bot';
+
+        const answerElement = document.createElement('div');
+        answerElement.className = 'answer';
+
+        // Render Markdown content instead of plain text
+        const renderedAnswer = renderMarkdown(data.answer);
+        answerElement.innerHTML = renderedAnswer;
+        botMessageElement.appendChild(answerElement);
+
+        chatBox.appendChild(botMessageElement);
+
+    } catch (error) {
+        console.error('Error:', error);
+        chatBox.removeChild(typingIndicator);
+        const errorMessageElement = document.createElement('div');
+        errorMessageElement.className = 'message bot';
+        errorMessageElement.innerHTML = '<div class="answer">❌ <strong>Error:</strong> Unable to get a response. Please try again.</div>';
+        chatBox.appendChild(errorMessageElement);
+    }
+
+    // Scroll to the bottom of the chat box
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
     </script>
 </body>
 </html>
