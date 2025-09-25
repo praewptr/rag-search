@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +20,7 @@
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             color: #333;
         }
-        
+
         .chat-container {
             width: 100%;
             max-width: 800px;
@@ -29,7 +30,7 @@
             backdrop-filter: blur(10px);
             padding: 30px;
         }
-        
+
         .chat-container h1 {
             text-align: center;
             margin-bottom: 30px;
@@ -37,7 +38,7 @@
             font-weight: 600;
             font-size: 2rem;
         }
-        
+
         .chat-box {
             border: 1px solid #e2e8f0;
             border-radius: 12px;
@@ -48,28 +49,28 @@
             background: #fff;
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
         }
-        
+
         .chat-box .message {
             margin: 15px 0;
             padding: 12px 16px;
             border-radius: 12px;
             max-width: 85%;
         }
-        
+
         .chat-box .message.user {
             margin-left: auto;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-bottom-right-radius: 4px;
         }
-        
+
         .chat-box .message.bot {
             background: #f7fafc;
             border: 1px solid #e2e8f0;
             border-bottom-left-radius: 4px;
             color: #2d3748;
         }
-        
+
         .chat-box .message.bot.typing {
             font-style: italic;
             color: #718096;
@@ -144,13 +145,13 @@
             font-size: 0.9em;
             color: #2c5282;
         }
-        
+
         .input-container {
             display: flex;
             gap: 12px;
             align-items: center;
         }
-        
+
         .input-container input {
             flex: 1;
             padding: 16px 20px;
@@ -160,12 +161,12 @@
             outline: none;
             transition: border-color 0.3s ease;
         }
-        
+
         .input-container input:focus {
             border-color: #6c757d;
             box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.1);
         }
-        
+
         .input-container button {
             padding: 16px 24px;
             border: none;
@@ -177,7 +178,7 @@
             font-weight: 500;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        
+
         .input-container button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4);
@@ -203,6 +204,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="chat-container">
         <h1>🤖 RAG Q&A System</h1>
@@ -210,7 +212,8 @@
             <!-- Messages will appear here -->
         </div>
         <div class="input-container">
-            <input type="text" id="user-input" placeholder="Ask me anything about your documents..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="user-input" placeholder="Ask me anything about your documents..."
+                onkeypress="handleKeyPress(event)">
             <button onclick="sendMessage()">📤 Send</button>
         </div>
     </div>
@@ -236,72 +239,73 @@
         }
 
         async function sendMessage() {
-    const userInput = document.getElementById('user-input');
-    const chatBox = document.getElementById('chat-box');
+            const userInput = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
 
-    const userMessage = userInput.value;
-    if (!userMessage) return;
+            const userMessage = userInput.value;
+            if (!userMessage) return;
 
-    // Display user message
-    const userMessageElement = document.createElement('div');
-    userMessageElement.className = 'message user';
-    userMessageElement.textContent = userMessage;
-    chatBox.appendChild(userMessageElement);
+            // Display user message
+            const userMessageElement = document.createElement('div');
+            userMessageElement.className = 'message user';
+            userMessageElement.textContent = userMessage;
+            chatBox.appendChild(userMessageElement);
 
-    // Clear input field
-    userInput.value = '';
+            // Clear input field
+            userInput.value = '';
 
-    // Display typing indicator
-    const typingIndicator = document.createElement('div');
-    typingIndicator.className = 'message bot typing';
-    typingIndicator.innerHTML = '🔍 Searching documents...';
-    chatBox.appendChild(typingIndicator);
+            // Display typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'message bot typing';
+            typingIndicator.innerHTML = '🔍 Searching documents...';
+            chatBox.appendChild(typingIndicator);
 
-    try {
-        // Call the API
-        const response = await fetch('http://127.0.0.1:5099/api/test', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ question: userMessage })
-        });
+            try {
+                // Call the API
+                const response = await fetch('/search/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: userMessage })
+                });
 
-        if (!response.ok) {
-            throw new Error('Failed to get response from the server');
+                if (!response.ok) {
+                    throw new Error('Failed to get response from the server');
+                }
+
+                const data = await response.json();
+
+                // Remove typing indicator
+                chatBox.removeChild(typingIndicator);
+
+                // Display bot response with Markdown rendering
+                const botMessageElement = document.createElement('div');
+                botMessageElement.className = 'message bot';
+
+                const answerElement = document.createElement('div');
+                answerElement.className = 'answer';
+
+                // Render Markdown content instead of plain text
+                const renderedAnswer = renderMarkdown(data.answer);
+                answerElement.innerHTML = renderedAnswer;
+                botMessageElement.appendChild(answerElement);
+
+                chatBox.appendChild(botMessageElement);
+
+            } catch (error) {
+                console.error('Error:', error);
+                chatBox.removeChild(typingIndicator);
+                const errorMessageElement = document.createElement('div');
+                errorMessageElement.className = 'message bot';
+                errorMessageElement.innerHTML = '<div class="answer">❌ <strong>Error:</strong> Unable to get a response. Please try again.</div>';
+                chatBox.appendChild(errorMessageElement);
+            }
+
+            // Scroll to the bottom of the chat box
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
-
-        const data = await response.json();
-
-        // Remove typing indicator
-        chatBox.removeChild(typingIndicator);
-
-        // Display bot response with Markdown rendering
-        const botMessageElement = document.createElement('div');
-        botMessageElement.className = 'message bot';
-
-        const answerElement = document.createElement('div');
-        answerElement.className = 'answer';
-
-        // Render Markdown content instead of plain text
-        const renderedAnswer = renderMarkdown(data.answer);
-        answerElement.innerHTML = renderedAnswer;
-        botMessageElement.appendChild(answerElement);
-
-        chatBox.appendChild(botMessageElement);
-
-    } catch (error) {
-        console.error('Error:', error);
-        chatBox.removeChild(typingIndicator);
-        const errorMessageElement = document.createElement('div');
-        errorMessageElement.className = 'message bot';
-        errorMessageElement.innerHTML = '<div class="answer">❌ <strong>Error:</strong> Unable to get a response. Please try again.</div>';
-        chatBox.appendChild(errorMessageElement);
-    }
-
-    // Scroll to the bottom of the chat box
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
     </script>
 </body>
+
 </html>

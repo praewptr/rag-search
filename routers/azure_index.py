@@ -21,10 +21,14 @@ from models.upload_txt import (
     TitleListResponse,
 )
 from utils.azure_index import (
+    count_documents,
     create_search_fields,
     create_vector_search_config,
     get_index_client,
     get_search_client,
+    get_select_field,
+    handle_index_error,
+    paginate_results,
 )
 
 router = APIRouter()
@@ -80,7 +84,7 @@ async def create_index(request: CreateIndexRequest):
             vector_search=vector_search,
         )
 
-        result = index_client.create_index(search_index)
+        index_client.create_index(search_index)
 
         logger.info(f"Successfully created index: {index_name}")
 
@@ -137,29 +141,16 @@ async def delete_index(index_name: str):
         Success message
     """
     try:
+        await handle_index_error(index_name, "deletion")
         index_client = get_index_client()
-
         logger.info(f"Deleting index: {index_name}")
-
-        # Check if index exists
-        try:
-            index_client.get_index(index_name)
-        except Exception:
-            raise HTTPException(
-                status_code=404, detail=f"Index '{index_name}' not found"
-            )
-
-        # Delete the index
         index_client.delete_index(index_name)
-
         logger.info(f"Successfully deleted index: {index_name}")
-
         return {
             "status": "success",
             "message": f"Index '{index_name}' deleted successfully",
             "index_name": index_name,
         }
-
     except HTTPException:
         raise
     except Exception as e:
@@ -180,7 +171,6 @@ async def get_index_statistics(
         search_client = get_search_client(index_name)
         selected_index = index_name or azure_search_index_txt
 
-        # Get index schema to find available fields
         try:
             index_client_instance = SearchIndexClient(
                 endpoint=azure_search_endpoint,
@@ -190,52 +180,15 @@ async def get_index_statistics(
             field_names = [field.name for field in index.fields]
             logger.info(f"Available fields in index '{selected_index}': {field_names}")
 
-            # Find a suitable field to select (prefer id, key fields, or use the first searchable field)
-            select_field = None
-            if "id" in field_names:
-                select_field = "id"
-            else:
-                # Find the key field (there should always be one)
-                for field in index.fields:
-                    if field.key:
-                        select_field = field.name
-                        break
-
-                # If no key field found, use first available field
-                if not select_field and field_names:
-                    select_field = field_names[0]
-
+            select_field = get_select_field(index.fields)
             logger.info(f"Using field '{select_field}' for counting documents")
 
         except Exception as e:
             logger.warning(f"Could not get index schema: {e}")
             select_field = None
 
-        # Get all documents to count them
-        if select_field:
-            # Use specific field selection
-            results = search_client.search(
-                search_text="*",
-                select=[select_field],
-                top=1000,  # Adjust based on your needs
-                include_total_count=True,
-            )
-        else:
-            # Fallback: don't select specific fields, just count
-            results = search_client.search(
-                search_text="*",
-                top=1000,  # Adjust based on your needs
-                include_total_count=True,
-            )
-
-        # Try to get total count from search results first
-        try:
-            document_count = results.get_count()
-            logger.info(f"Got document count from search results: {document_count}")
-        except:
-            # Fallback: count by iterating through results
-            document_count = len(list(results))
-            logger.info(f"Got document count by iteration: {document_count}")
+        document_count = count_documents(search_client, select_field)
+        logger.info(f"Total document count: {document_count}")
 
         return IndexStats(
             total_documents=document_count,
@@ -300,7 +253,7 @@ async def search_index(
         # Get total count from results
         try:
             total_count = results.get_count()
-        except:
+        except Exception:
             total_count = len(search_results)
 
         logger.info(
@@ -340,7 +293,6 @@ async def browse_all_documents(
     try:
         search_client = get_search_client(index_name)
         selected_index = index_name or azure_search_index_txt
-
         logger.info(
             f"Browsing index '{selected_index}' - Page {page}, Size {page_size}"
         )
@@ -348,11 +300,7 @@ async def browse_all_documents(
         # Check if index has title field
         has_title_field = False
         try:
-            # Get index schema to check for title field
-            index_client_instance = SearchIndexClient(
-                endpoint=azure_search_endpoint,
-                credential=AzureKeyCredential(azure_search_key),
-            )
+            index_client_instance = get_index_client()
             index = index_client_instance.get_index(name=selected_index)
             field_names = [field.name for field in index.fields]
             has_title_field = "title" in field_names
@@ -361,187 +309,49 @@ async def browse_all_documents(
             logger.warning(f"Could not check index schema: {e}")
             has_title_field = False
 
-        # Use different method based on whether title field exists
         if has_title_field:
             logger.info("Using title-based method - returning unique document titles")
-
-            # Get all documents with titles
             search_results = search_client.search(
                 search_text="*", select=["title"], include_total_count=True
             )
-
-            # Use a set to deduplicate titles
-            unique_titles = set()
-            for doc in search_results:
-                title = doc.get("title")
-                if title:
-                    unique_titles.add(title)
-
-            # Convert to sorted list
-            title_list = sorted(list(unique_titles))
-
-            # Apply pagination to title list
-            start_idx = (page - 1) * page_size
-            end_idx = start_idx + page_size
-            paginated_titles = title_list[start_idx:end_idx]
-
-            logger.info(
-                f"Found {len(unique_titles)} unique titles, returning {len(paginated_titles)} for page {page}"
-            )
-
+            unique_titles = {
+                doc.get("title") for doc in search_results if doc.get("title")
+            }
+            title_list = sorted(unique_titles)
+            paginated_titles = await paginate_results(title_list, page, page_size)
             return TitleListResponse(
                 total_count=len(title_list),
                 titles=paginated_titles,
                 query="*",
                 status="success",
             )
-
         else:
             logger.info("Using standard method for document retrieval")
-
             skip = (page - 1) * page_size
-
-            # Get index schema to determine available fields
-            available_fields = []
-            select_fields = []
-            order_by_field = None
-
-            try:
-                # Get index schema
-                index_client_instance = SearchIndexClient(
-                    endpoint=azure_search_endpoint,
-                    credential=AzureKeyCredential(azure_search_key),
-                )
-                index = index_client_instance.get_index(name=selected_index)
-                available_fields = [field.name for field in index.fields]
-
-                # Build select fields based on what's available
-                standard_fields = ["id", "content", "source", "timestamp", "chunk_id"]
-                for field in standard_fields:
-                    if field in available_fields:
-                        select_fields.append(field)
-
-                # If no standard fields found, include key field and first few fields
-                if not select_fields:
-                    for field in index.fields:
-                        if field.key or len(select_fields) < 5:
-                            select_fields.append(field.name)
-                        if len(select_fields) >= 5:
-                            break
-
-                # Determine order by field
-                if "timestamp" in available_fields:
-                    order_by_field = "timestamp desc"
-                elif select_fields:
-                    # Use first available field for ordering if it's sortable
-                    order_by_field = f"{select_fields[0]} asc"
-
-                logger.info(f"Using fields: {select_fields}")
-                logger.info(f"Order by: {order_by_field}")
-
-            except Exception as e:
-                logger.warning(f"Could not get index schema for field selection: {e}")
-                # Fallback: don't specify fields
-                select_fields = []
-
-            # Method for indexes without title field - standard retrieval
-            search_params = {
-                "search_text": "*",
-                "top": page_size,
-                "skip": skip,
-                "include_total_count": True,
-            }
-
-            # Add optional parameters only if they have values
-            if select_fields:
-                search_params["select"] = select_fields
-            if order_by_field:
-                try:
-                    search_params["order_by"] = [order_by_field]
-                except:
-                    logger.warning("Could not apply ordering, continuing without it")
-
-            results = search_client.search(**search_params)
-
-            # Process results
-            search_results = []
-
-            for result in results:
-                # Build SearchResult with available data, use defaults for missing fields
-                search_results.append(
-                    SearchResult(
-                        id=result.get(
-                            "id",
-                            result.get(
-                                select_fields[0] if select_fields else "unknown", ""
-                            ),
-                        ),
-                        content=result.get(
-                            "content",
-                            str(
-                                result.get(
-                                    (
-                                        select_fields[1]
-                                        if len(select_fields) > 1
-                                        else "content"
-                                    ),
-                                    "",
-                                )
-                            )[:200]
-                            + "...",
-                        ),
-                        source=result.get(
-                            "source",
-                            result.get(
-                                (
-                                    select_fields[2]
-                                    if len(select_fields) > 2
-                                    else "source"
-                                ),
-                                "Unknown",
-                            ),
-                        ),
-                        timestamp=result.get(
-                            "timestamp",
-                            result.get(
-                                (
-                                    select_fields[3]
-                                    if len(select_fields) > 3
-                                    else "timestamp"
-                                ),
-                                "",
-                            ),
-                        ),
-                        chunk_id=result.get(
-                            "chunk_id",
-                            result.get(
-                                select_fields[4]
-                                if len(select_fields) > 4
-                                else "chunk_id"
-                            ),
-                        ),
-                        score=result.get("@search.score"),
-                        title=None,
-                    )
-                )
-
-            # Get total count
-            try:
-                total_count = results.get_count()
-            except:
-                total_count = len(search_results)
-
-            logger.info(
-                f"Browse results: {len(search_results)} documents on page {page}, {total_count} total"
+            results = search_client.search(
+                search_text="*",
+                top=page_size,
+                skip=skip,
+                include_total_count=True,
             )
-
+            search_results = [
+                SearchResult(
+                    id=result.get("id", ""),
+                    content=result.get("content", ""),
+                    source=result.get("source", ""),
+                    timestamp=result.get("timestamp", ""),
+                    chunk_id=result.get("chunk_id"),
+                    score=result.get("@search.score"),
+                )
+                for result in results
+            ]
+            total_count = results.get_count() or len(search_results)
             return SearchResponse(
                 total_count=total_count,
                 results=search_results,
                 query="*",
                 status="success",
             )
-
     except Exception as e:
         logger.error(f"Error browsing index: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to browse index: {str(e)}")
@@ -630,7 +440,7 @@ async def delete_document_from_index(
             )
 
         # Delete the document
-        delete_result = search_client.delete_documents([{"id": doc_id}])
+        search_client.delete_documents([{"id": doc_id}])
 
         logger.info(f"Successfully deleted document with ID: {doc_id}")
 
