@@ -9,10 +9,17 @@ class DocumentItem(BaseModel):
 
     content: str = Field(..., description="The text content to be processed")
     source: str = Field(..., description="Source identifier for the document")
-    timestamp: str = Field(
+    timestamp: Optional[str] = Field(
         default_factory=lambda: datetime.utcnow().isoformat() + "Z",
         description="ISO timestamp",
     )
+    id: Optional[int] = Field(None, description="Document ID from database")
+    # Add support for Oracle fields
+    ROWID: Optional[str] = Field(None, description="Oracle ROWID")
+
+    class Config:
+        # Allow extra fields for Oracle columns
+        extra = "allow"
 
 
 class BulkUploadRequest(BaseModel):
@@ -31,22 +38,16 @@ class UploadResponse(BaseModel):
 
 
 class DocumentResponse(BaseModel):
-    value: List[DocumentItem]
+    value: List[Dict[str, Any]]  # Changed to support Oracle data structure
 
 
 class UploadRequest(BaseModel):
     value: List[DocumentItem]
 
 
-class DocumentItem(BaseModel):
-    content: str
-    source: str
-    timestamp: Optional[str] = None
-    id: Optional[int] = None  # or str, depending on your id type
-
-
 class DocumentsPayload(BaseModel):
     value: List[DocumentItem]
+    index: Optional[str] = None  # Optional index name for upload
 
 
 class SearchResult(BaseModel):

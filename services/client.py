@@ -1,6 +1,7 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
+from azure.storage.blob import BlobServiceClient
 from langchain_community.retrievers.azure_ai_search import AzureAISearchRetriever
 from langchain_openai import AzureChatOpenAI
 from langchain_openai.embeddings import AzureOpenAIEmbeddings
@@ -17,6 +18,8 @@ from config import (
     azure_search_index_doc,
     azure_search_index_txt,
     azure_search_key,
+    azure_storage_connection_str,
+    azure_storage_container_name,
 )
 
 # project_dir = os.path.dirname(os.path.abspath(__file__))
@@ -93,4 +96,13 @@ retriever_text = AzureAISearchRetriever(
 # ----------------Search Index Client-----------------#
 index_client = SearchIndexClient(
     endpoint=azure_search_endpoint, credential=AzureKeyCredential(azure_search_key)
+)
+
+
+# ----------------Blob Storage Client-----------------#
+blob_service_client = BlobServiceClient.from_connection_string(
+    azure_storage_connection_str
+)
+blob_container_client = blob_service_client.get_container_client(
+    azure_storage_container_name
 )

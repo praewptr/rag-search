@@ -1,11 +1,13 @@
 from typing import List
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough, RunnableMap
-from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import AzureOpenAIEmbeddings
-from services.client import llm, retriever_pdf, retriever_text
+
 from langchain.docstore.document import Document
-from config import azure_search_index_txt, azure_search_index_doc
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableMap, RunnablePassthrough
+from langchain_openai import AzureOpenAIEmbeddings
+
+from config import azure_search_index_doc, azure_search_index_txt
+from services.client import llm, retriever_pdf, retriever_text
 
 prompt = ChatPromptTemplate.from_template(
     """You are an expert assistant providing accurate answers based **strictly on document context**. 
@@ -17,7 +19,7 @@ prompt = ChatPromptTemplate.from_template(
     - Focus on main language, ignore technical terms in parentheses
 
     **Format:**
-    - Use bullet points (•) and headings for clarity
+    - headings for clarity
     - Be comprehensive but concise
     - Professional yet friendly tone
 
@@ -60,7 +62,6 @@ def retrieve_and_rank(question: str, top_k: int = 5) -> List[Document]:
     Retrieve documents from both retrievers, merge and sort by score.
     """
     try:
-
         results_pdf = retriever_pdf.invoke(question)
         results_text = retriever_text.invoke(question)
 

@@ -35,11 +35,14 @@ def chunk_content(content: str, source: str, timestamp: str = None) -> List[Docu
 
 
 # 2. Upload to Azure Search
-def upload_to_azure_search(documents: List[Document]):
-    # Initialize search client for text index
+def upload_to_azure_search(documents: List[Document], index_name: str = None):
+    # Use provided index name or fall back to default
+    target_index = index_name or azure_search_index_txt
+
+    # Initialize search client for specified index
     search_client = SearchClient(
         endpoint=azure_search_endpoint,
-        index_name=azure_search_index_txt,
+        index_name=target_index,
         credential=AzureKeyCredential(azure_search_key),
     )
 
@@ -62,15 +65,55 @@ def upload_to_azure_search(documents: List[Document]):
     # Upload in batches
     try:
         result = search_client.upload_documents(documents=azure_docs)
-        print(f"✅ Successfully uploaded {len(azure_docs)} documents to Azure Search")
+        print(
+            f"✅ Successfully uploaded {len(azure_docs)} documents to Azure Search index '{target_index}'"
+        )
+
+        # Log any failures in detail
+        for r in result:
+            if not r.succeeded:
+                print(f"❌ Failed to upload document {r.key}: {r.error_message}")
+
         return result
     except Exception as e:
         print(f"❌ Error uploading to Azure Search: {e}")
-        raise e
+        print(f"❌ Index name: {target_index}")
+        print(f"❌ Endpoint: {azure_search_endpoint}")
+        print(f"❌ Document count: {len(azure_docs)}")
+        if azure_docs:
+            print(
+                f"❌ Sample document keys: {[doc.get('id', 'no-id') for doc in azure_docs[:3]]}"
+            )
+            print(
+                f"❌ Sample document structure: {list(azure_docs[0].keys()) if azure_docs else 'No documents'}"
+            )
+
+        # Enhance error message with more context
+        error_msg = str(e)
+        if "not found" in error_msg.lower() or "404" in error_msg:
+            raise Exception(
+                f"Index '{target_index}' not found in Azure Search. Please verify the index exists."
+            )
+        elif "bad request" in error_msg.lower() or "400" in error_msg:
+            raise Exception(
+                f"Index '{target_index}' field structure mismatch. Expected fields: id, content, source, timestamp, chunk_id, text_vector. Original error: {error_msg}"
+            )
+        elif "unauthorized" in error_msg.lower() or "401" in error_msg:
+            raise Exception(
+                f"Authentication failed for Azure Search. Please check API key. Original error: {error_msg}"
+            )
+        elif "forbidden" in error_msg.lower() or "403" in error_msg:
+            raise Exception(
+                f"Access denied to index '{target_index}'. Please check API key permissions. Original error: {error_msg}"
+            )
+        else:
+            raise Exception(
+                f"Upload to index '{target_index}' failed. This may indicate field structure incompatibility or configuration issues. Original error: {error_msg}"
+            )
 
 
 # 3. Orchestration function
-def process_and_upload(data: Dict):
+def process_and_upload(data: Dict, index_name: str = None):
     if "content" not in data or "source" not in data:
         raise ValueError("JSON data must include 'content' and 'source' fields.")
 
@@ -80,29 +123,50 @@ def process_and_upload(data: Dict):
         timestamp=data.get("timestamp"),
     )
 
-    result = upload_to_azure_search(documents)
+    result = upload_to_azure_search(documents, index_name)
     return result
 
 
-def process_and_upload_batch(documents: List[Dict]):
+def process_and_upload_batch(documents: List[Dict], index_name: str = None):
     all_chunks = []
     for data in documents:
-        if "content" not in data or "source" not in data:
-            raise ValueError("Each document must include 'content' and 'source'.")
-
-        # Use provided 'id' or generate new UUIDs for chunk_id
-        doc_chunks = chunk_content(
-            content=data["content"],
-            source=data["source"],
-            timestamp=data.get("timestamp"),
+        # Handle both Oracle format and standardized format
+        content = data.get("content") or data.get("CONTENT") or data.get("Content")
+        source = (
+            data.get("source")
+            or data.get("USER_NAME")
+            or data.get("user_name")
+            or data.get("SOURCE")
         )
-        # Overwrite chunk metadata 'id' with provided id if available
-        if "id" in data:
+        timestamp = (
+            data.get("timestamp") or data.get("CREATED_DATE") or data.get("TIMESTAMP")
+        )
+
+        if not content:
+            raise ValueError(
+                f"Document missing content field. Available fields: {list(data.keys())}"
+            )
+        if not source:
+            raise ValueError(
+                f"Document missing source field. Available fields: {list(data.keys())}"
+            )
+
+        # Use provided 'id' for tracking but keep unique chunk IDs
+        doc_chunks = chunk_content(
+            content=content,
+            source=source,
+            timestamp=timestamp,
+        )
+        # Add source document reference in metadata for tracking
+        doc_id = data.get("id") or data.get("ID")
+        if doc_id:
             for chunk in doc_chunks:
-                chunk.metadata["id"] = str(data["id"])
+                # Store original document ID in source for tracking
+                original_source = chunk.metadata.get("source", "")
+                chunk.metadata["source"] = f"{original_source} (Doc ID: {doc_id})"
         all_chunks.extend(doc_chunks)
 
-    return upload_to_azure_search(all_chunks)
+    return upload_to_azure_search(all_chunks, index_name)
 
 
 if __name__ == "__main__":
