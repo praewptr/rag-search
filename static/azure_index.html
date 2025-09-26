@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +24,7 @@
             margin: 0 auto;
             background: #f8f9fa;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             overflow: hidden;
         }
 
@@ -37,7 +38,7 @@
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .header p {
@@ -54,7 +55,7 @@
             padding: 20px;
             background: white;
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .search-container {
@@ -104,13 +105,37 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
 
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 12px 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn:hover {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
 
         .stats-section {
@@ -125,7 +150,7 @@
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .index-selector h3 {
@@ -197,7 +222,7 @@
             background: white;
             border-radius: 15px;
             padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .results-header {
@@ -255,7 +280,7 @@
 
         .document-item:hover {
             border-color: #6c757d;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .document-header {
@@ -320,7 +345,7 @@
 
         .title-item:hover {
             border-left: 5px solid #0056b3;
-            box-shadow: 0 8px 25px rgba(0,123,255,0.15);
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15);
         }
 
         .document-title-main {
@@ -398,8 +423,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .message {
@@ -468,17 +498,21 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
             <h1>Azure Index Documents</h1>
             <p>Browse and manage your Azure AI Search text index documents</p>
         </div>
-        
+
         <div class="content">
+            <div style="padding: 20px; text-align: left;">
+                <a href="/static/dashboard.html" class="back-btn">← Back to Dashboard</a>
+            </div>
             <!-- Message area -->
             <div id="message" class="message"></div>
-            
+
             <!-- Index Selection Section -->
             <div class="index-selector">
                 <h3>🎯 Select Index</h3>
@@ -489,7 +523,8 @@
                     <button class="btn btn-primary" onclick="switchIndex()">
                         📋 Load Index
                     </button>
-                    <button class="btn" onclick="deleteCurrentIndex()" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                    <button class="btn" onclick="deleteCurrentIndex()"
+                        style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
                         🗑️ Delete Index
                     </button>
                 </div>
@@ -499,7 +534,9 @@
             <div class="index-selector">
                 <h3>🔧 Create New Index</h3>
                 <div class="selector-container">
-                    <input type="text" id="newIndexName" class="search-input" placeholder="Enter new index name (lowercase, hyphens allowed)..." style="flex: 2; min-width: 300px;">
+                    <input type="text" id="newIndexName" class="search-input"
+                        placeholder="Enter new index name (lowercase, hyphens allowed)..."
+                        style="flex: 2; min-width: 300px;">
                     <div class="create-index-controls">
                         <label class="checkbox-label">
                             <input type="checkbox" id="forceRecreate">
@@ -511,7 +548,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Stats Section -->
             <div class="stats-section">
                 <div class="stat-card">
@@ -523,7 +560,7 @@
                     <div>Index Name</div>
                 </div>
             </div>
-            
+
             <!-- Results Section -->
             <div class="results-section">
                 <div class="results-header">
@@ -532,13 +569,13 @@
                         <!-- Pagination will be populated by JavaScript -->
                     </div>
                 </div>
-                
+
                 <!-- Loading -->
                 <div class="loading" id="loading">
                     <div class="spinner"></div>
                     <p>Searching index...</p>
                 </div>
-                
+
                 <!-- Results Grid -->
                 <div class="document-grid" id="resultsGrid">
                     <!-- Results will be populated by JavaScript -->
@@ -554,7 +591,7 @@
         let selectedIndex = null;
 
         // Load index stats and available indexes on page load
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', function () {
             loadAvailableIndexes();
             setupIndexNameValidation();
         });
@@ -562,11 +599,11 @@
         function setupIndexNameValidation() {
             const indexNameInput = document.getElementById('newIndexName');
             const createButton = document.querySelector('button[onclick="createIndex()"]');
-            
-            indexNameInput.addEventListener('input', function() {
+
+            indexNameInput.addEventListener('input', function () {
                 const indexName = this.value.trim();
                 const isValid = validateIndexName(indexName);
-                
+
                 if (indexName && !isValid) {
                     this.style.borderColor = '#dc3545';
                     this.title = 'Index name must be 2-60 characters, lowercase letters, numbers, and hyphens only. Cannot start or end with hyphen.';
@@ -600,16 +637,16 @@
                 if (response.ok) {
                     const data = await response.json();
                     const dropdown = document.getElementById('indexDropdown');
-                    
+
                     dropdown.innerHTML = '';
-                    
+
                     data.indexes.forEach(index => {
                         const option = document.createElement('option');
                         option.value = index.name;
                         option.textContent = index.name;
                         dropdown.appendChild(option);
                     });
-                    
+
                     // Set default selection
                     if (data.default_index) {
                         dropdown.value = data.default_index;
@@ -618,7 +655,7 @@
                         await loadIndexStats();
                         await loadDocuments();
                     }
-                    
+
                 } else {
                     document.getElementById('indexDropdown').innerHTML = '<option value="">Failed to load indexes</option>';
                 }
@@ -685,12 +722,12 @@
         async function switchIndex() {
             const dropdown = document.getElementById('indexDropdown');
             selectedIndex = dropdown.value;
-            
+
             if (!selectedIndex) {
                 showMessage('Please select an index', 'error');
                 return;
             }
-            
+
             showMessage(`Switching to index: ${selectedIndex}`, 'info');
             await loadIndexStats();
             await loadDocuments();
@@ -699,12 +736,12 @@
         async function deleteCurrentIndex() {
             const dropdown = document.getElementById('indexDropdown');
             const indexToDelete = dropdown.value;
-            
+
             if (!indexToDelete) {
                 showMessage('Please select an index to delete', 'error');
                 return;
             }
-            
+
             if (!confirm(`Are you sure you want to delete the entire index "${indexToDelete}"? This will permanently delete ALL documents in the index. This action cannot be undone.`)) {
                 return;
             }
@@ -724,14 +761,14 @@
 
                 const result = await response.json();
                 showMessage(result.message, 'success');
-                
+
                 // Reset the interface
                 selectedIndex = null;
                 document.getElementById('totalDocs').textContent = '0';
                 document.getElementById('indexName').textContent = '-';
                 document.getElementById('resultsGrid').innerHTML = '';
                 document.getElementById('pagination').innerHTML = '';
-                
+
                 // Refresh the index list
                 await loadAvailableIndexes();
 
@@ -745,7 +782,7 @@
 
         async function loadIndexStats() {
             if (!selectedIndex) return;
-            
+
             try {
                 const url = `/azure-index/index-stats?index_name=${encodeURIComponent(selectedIndex)}`;
                 const response = await fetch(url);
@@ -764,7 +801,7 @@
                 showMessage('Please select an index first', 'error');
                 return;
             }
-            
+
             currentPage = 1;
             showLoading(true);
             hideMessage();
@@ -772,13 +809,13 @@
             try {
                 const url = `/azure-index/browse?page=${currentPage}&page_size=${pageSize}&index_name=${encodeURIComponent(selectedIndex)}`;
                 const response = await fetch(url);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
-                
+
                 // Check if this is a title list response or standard document response
                 if (data.titles && Array.isArray(data.titles)) {
                     // Title list response
@@ -810,26 +847,26 @@
                 showMessage('No index selected', 'error');
                 return;
             }
-            
+
             if (!confirm(`Are you sure you want to delete document "${documentId}" from index "${selectedIndex}"? This action cannot be undone.`)) {
                 return;
             }
 
             try {
                 showLoading(true);
-                
+
                 const url = `/azure-index/documents/${encodeURIComponent(documentId)}?index_name=${encodeURIComponent(selectedIndex)}`;
                 const response = await fetch(url, {
                     method: 'DELETE'
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const result = await response.json();
                 showMessage(result.message, 'success');
-                
+
                 // Reload documents and stats after deletion
                 await loadDocuments();
                 await loadIndexStats();
@@ -847,20 +884,20 @@
                 showMessage('No index selected', 'error');
                 return;
             }
-            
+
             currentPage = page;
             showLoading(true);
 
             try {
                 const url = `/azure-index/browse?page=${page}&page_size=${pageSize}&index_name=${encodeURIComponent(selectedIndex)}`;
                 const response = await fetch(url);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
-                
+
                 // Check if this is a title list response or standard document response
                 if (data.titles && Array.isArray(data.titles)) {
                     // Title list response
@@ -885,7 +922,7 @@
         function renderResults(results, title) {
             const grid = document.getElementById('resultsGrid');
             const titleElement = document.getElementById('resultsTitle');
-            
+
             titleElement.textContent = title;
 
             // Check if results is a title list (array of strings) or document results
@@ -910,7 +947,7 @@
         function renderTitleList(titles, title) {
             const grid = document.getElementById('resultsGrid');
             const titleElement = document.getElementById('resultsTitle');
-            
+
             titleElement.textContent = `${title}`;
 
             if (titles.length === 0) {
@@ -1003,7 +1040,7 @@
         function showLoading(show) {
             const loading = document.getElementById('loading');
             const grid = document.getElementById('resultsGrid');
-            
+
             if (show) {
                 loading.classList.add('active');
                 grid.style.display = 'none';
@@ -1017,7 +1054,7 @@
             const message = document.getElementById('message');
             message.textContent = text;
             message.className = `message ${type} show`;
-            
+
             setTimeout(() => {
                 hideMessage();
             }, 5000);
@@ -1044,4 +1081,5 @@
         }
     </script>
 </body>
+
 </html>

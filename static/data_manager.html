@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +24,7 @@
             margin: 0 auto;
             background: #f8f9fa;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             overflow: hidden;
         }
 
@@ -37,7 +38,7 @@
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .header p {
@@ -47,6 +48,48 @@
 
         .content {
             padding: 30px;
+        }
+
+        .index-selector {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .selector-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .create-index-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            /* Allow the input to grow and fill available space */
+            min-width: 300px;
+            /* Minimum width for the input */
+            padding: 12px 20px;
+            /* Inner padding for better usability */
+            border: 2px solid #dee2e6;
+            /* Light gray border */
+            border-radius: 25px;
+            /* Rounded corners */
+            font-size: 16px;
+            /* Font size for better readability */
+            outline: none;
+            /* Remove default focus outline */
+            transition: border-color 0.3s ease;
+            /* Smooth transition for focus effect */
         }
 
         .actions {
@@ -70,6 +113,8 @@
             display: inline-block;
         }
 
+
+
         .btn-primary {
             background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
             color: white;
@@ -92,7 +137,7 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
 
         .btn:disabled {
@@ -122,25 +167,30 @@
             margin-bottom: 5px;
         }
 
-        .documents-grid {
-            display: grid;
-            gap: 20px;
+        .documents-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
             margin-bottom: 30px;
         }
 
         .document-card {
             border: 2px solid #dee2e6;
-            border-radius: 15px;
-            padding: 20px 20px 55px 20px;
+            border-radius: 12px;
+            padding: 15px 20px;
             transition: all 0.3s ease;
             position: relative;
             background: white;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 80px;
         }
 
         .document-card:hover {
             border-color: #6c757d;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
             transform: translateY(-1px);
         }
 
@@ -152,32 +202,58 @@
         }
 
         .document-card.selected::before {
-            content: '✓ SELECTED';
+            content: '✓';
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
             background: #28a745;
             color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
+            padding: 8px;
+            border-radius: 50%;
+            font-size: 14px;
             font-weight: bold;
             z-index: 5;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .document-main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 45px;
+            /* Space for checkbox */
+        }
+
+        .document-main-content.no-selection {
+            margin-left: 15px;
+            /* No space needed when not selected */
+        }
+
+        .document-info {
+            flex: 1;
+            min-width: 0;
+            /* Allow text truncation */
         }
 
         .document-header {
             display: flex;
-            justify-content: flex-end;
+            justify-content: flex-start;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
+            gap: 10px;
         }
 
         .document-actions {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
+            position: static;
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            margin-left: 15px;
         }
 
         .document-actions .btn {
@@ -191,29 +267,44 @@
         }
 
         .document-source {
-            font-weight: normal;
-            color: #888;
-            margin-bottom: 5px;
+            font-weight: 500;
+            color: #6c757d;
+            margin-bottom: 4px;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .document-source::before {
+            content: '📄';
             font-size: 0.9em;
-            opacity: 0.8;
         }
 
         .document-content {
-            color: #333;
-            line-height: 1.6;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            font-weight: 500;
-            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4f8 100%);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #495057;
+            color: #495057;
+            line-height: 1.4;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 500px;
         }
 
         .document-timestamp {
-            font-size: 0.9em;
-            color: #999;
+            font-size: 0.8em;
+            color: #adb5bd;
             font-style: italic;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .document-timestamp::before {
+            content: '🕒';
+            font-size: 0.9em;
         }
 
         .loading {
@@ -237,8 +328,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .message {
@@ -276,6 +372,30 @@
             margin-bottom: 20px;
         }
 
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 12px 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn:hover {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
         @media (max-width: 768px) {
             .actions {
                 flex-direction: column;
@@ -287,35 +407,75 @@
                 margin-bottom: 10px;
             }
 
-            .document-header {
+            .document-card {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 15px;
+                min-height: auto;
+            }
+
+            .document-main-content {
+                margin-left: 15px !important;
+                margin-bottom: 15px;
             }
 
             .document-actions {
-                position: static;
-                justify-content: center;
-                margin-top: 15px;
+                align-self: center;
+                margin-left: 0;
             }
 
-            .document-card {
-                padding: 20px;
+            .document-content {
+                max-width: 100%;
+                white-space: normal;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                line-clamp: 2;
+                overflow: hidden;
+            }
+
+            .document-card.selected::before {
+                top: 20px;
+                left: 15px;
+                transform: none;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
             <h1>🚀 RAG Data Manager</h1>
             <p>Manage your documents before uploading to Azure AI Search</p>
         </div>
-        
+
         <div class="content">
+            <div style="padding: 20px; text-align: left;">
+                <a href="/static/dashboard.html" class="back-btn">← Back to Dashboard</a>
+            </div>
             <!-- Message area -->
             <div id="message" class="message"></div>
-            
+
+            <!-- Create Index Section -->
+            <div class="index-selector">
+                <h3>🔧 Create New Index</h3>
+                <div class="selector-container">
+                    <input type="text" id="newIndexName" class="search-input"
+                        placeholder="Enter new index name (lowercase, hyphens allowed)..."
+                        style="flex: 2; min-width: 300px;">
+                    <div class="create-index-controls">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="forceRecreate">
+                            <span>Force recreate if exists</span>
+                        </label>
+                        <button class="btn btn-info" onclick="createIndex()">
+                            ➕ Create Index
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
             <!-- Actions -->
             <div class="actions">
                 <div>
@@ -329,7 +489,10 @@
                         ☐ Deselect All
                     </button>
                 </div>
-                <div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="indexDropdown" style="font-weight: 600;">Index:</label>
+                    <select id="indexDropdown"
+                        style="padding: 8px 16px; border-radius: 8px; font-size: 16px; min-width: 180px;"></select>
                     <button class="btn btn-success" onclick="uploadSelectedToAzure()" id="uploadBtn" disabled>
                         ☁️ Upload Selected to Azure
                     </button>
@@ -338,7 +501,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <!-- Stats -->
             <div class="stats">
                 <div class="stat-card">
@@ -350,15 +513,24 @@
                     <div>Selected</div>
                 </div>
             </div>
-            
+
             <!-- Loading -->
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <p>Loading documents...</p>
             </div>
-            
+
+            <!-- Documents Section Header -->
+            <div style="margin-bottom: 20px;">
+                <h3
+                    style="color: #495057; margin: 0; padding: 10px 0; border-bottom: 2px solid #dee2e6; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.2em;">🗄️</span>
+                    Text from database
+                </h3>
+            </div>
+
             <!-- Documents -->
-            <div class="documents-grid" id="documentsGrid">
+            <div class="documents-list" id="documentsGrid">
                 <!-- Documents will be loaded here -->
             </div>
         </div>
@@ -370,12 +542,12 @@
         let selectedArray = []; // Backup array for debugging
 
         // Force a fresh Set on page load
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', function () {
             selectedDocuments = new Set(); // Reset the Set
             selectedArray = []; // Reset the array
             console.log('Initialized selectedDocuments Set:', selectedDocuments);
             console.log('Initialized selectedArray:', selectedArray);
-            loadDocuments();
+            loadAvailableIndexes();
         });
 
         // Test function to verify Set is working
@@ -387,7 +559,7 @@
             console.log('Test Set:', Array.from(testSet));
             console.log('testSet.has("1"):', testSet.has('1'));
             console.log('testSet.has("2"):', testSet.has('2'));
-            
+
             console.log('Current selectedDocuments:', Array.from(selectedDocuments));
             return testSet;
         }
@@ -395,16 +567,16 @@
         async function loadDocuments() {
             showLoading(true);
             hideMessage();
-            
+
             try {
                 const response = await fetch('/text-manage/text');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 documents = data.value || [];
-                
+
                 renderDocuments();
                 updateStats();
                 showMessage('Documents loaded successfully!', 'success');
@@ -417,10 +589,133 @@
                 showLoading(false);
             }
         }
+        function validateIndexName(indexName) {
+            if (!indexName || indexName.length < 2 || indexName.length > 60) {
+                return false;
+            }
+            if (!/^[a-z0-9-]+$/.test(indexName)) {
+                return false;
+            }
+            if (indexName.startsWith('-') || indexName.endsWith('-')) {
+                return false;
+            }
+            return true;
+        }
+
+        async function loadAvailableIndexes() {
+            try {
+                const response = await fetch('/azure-index/indexes');
+                if (response.ok) {
+                    const data = await response.json();
+                    const dropdown = document.getElementById('indexDropdown');
+
+                    dropdown.innerHTML = '';
+
+                    data.indexes.forEach(index => {
+                        const option = document.createElement('option');
+                        option.value = index.name;
+                        option.textContent = index.name;
+                        dropdown.appendChild(option);
+                    });
+
+                    // Set default selection
+                    if (data.default_index) {
+                        dropdown.value = data.default_index;
+                        // Optionally auto-load documents for default index
+                    }
+                    // Always load documents after indexes are loaded
+                    await loadDocuments();
+
+                } else {
+                    document.getElementById('indexDropdown').innerHTML = '<option value="">Failed to load indexes</option>';
+                }
+            } catch (error) {
+                console.error('Error loading indexes:', error);
+                document.getElementById('indexDropdown').innerHTML = '<option value="">Error loading indexes</option>';
+            }
+        }
+
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = `message ${type} show`;
+
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const grid = document.getElementById('resultsGrid');
+
+            if (show) {
+                loading.classList.add('active');
+                grid.style.display = 'none';
+            } else {
+                loading.classList.remove('active');
+                grid.style.display = 'grid';
+            }
+        }
+
+        async function createIndex() {
+            const indexNameInput = document.getElementById('newIndexName');
+            const forceRecreateCheckbox = document.getElementById('forceRecreate');
+
+            const indexName = indexNameInput.value.trim();
+            if (!indexName) {
+                showMessage('Please enter an index name', 'error');
+                indexNameInput.focus();
+                return;
+            }
+
+            // Validate index name
+            if (!validateIndexName(indexName)) {
+                showMessage('Index name must be 2-60 characters, lowercase letters, numbers, and hyphens only. Cannot start or end with hyphen.', 'error');
+                indexNameInput.focus();
+                return;
+            }
+
+            const forceRecreate = forceRecreateCheckbox.checked;
+
+            try {
+                showLoading(true);
+                showMessage(`Creating index: ${indexName}...`, 'info');
+
+                const response = await fetch('/azure-index/create-index', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: indexName,
+                        force_recreate: forceRecreate,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showMessage(`✅ ${result.message}`, 'success');
+                    await loadAvailableIndexes(); // Refresh the index list
+                } else if (result.status === 'exists') {
+                    showMessage(`ℹ️ ${result.message}`, 'info');
+                } else {
+                    showMessage(`❌ ${result.message}`, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error creating index:', error);
+                showMessage(`❌ Failed to create index: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
 
         function renderDocuments() {
             const grid = document.getElementById('documentsGrid');
-            
+
             if (documents.length === 0) {
                 grid.innerHTML = `
                     <div class="no-documents">
@@ -436,13 +731,23 @@
                      id="doc-${doc.id}" 
                      onclick="toggleDocumentClick(event, '${doc.id}')">
                     
-                    <div class="document-source">${escapeHtml(doc.source)}</div>
-                    <div class="document-content">${escapeHtml(doc.content.substring(0, 200))}${doc.content.length > 200 ? '...' : ''}</div>
-                    <div class="document-timestamp">📅 ${formatTimestamp(doc.timestamp)}</div>
+                    <div class="document-main-content ${selectedDocuments.has(String(doc.id)) ? '' : 'no-selection'}">
+                        <div class="document-info">
+                            <div class="document-header">
+                                <div class="document-source">${escapeHtml(doc.source)}</div>
+                            </div>
+                            <div class="document-content" title="${escapeHtml(doc.content)}">
+                                ${escapeHtml(doc.content.substring(0, 120))}${doc.content.length > 120 ? '...' : ''}
+                            </div>
+                            <div class="document-timestamp">
+                                ${formatTimestamp(doc.timestamp)}
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="document-actions" onclick="event.stopPropagation()">
-                        <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc.id}')">
-                            🗑️ Delete
+                        <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc.id}')" title="Delete document">
+                            🗑️
                         </button>
                     </div>
                 </div>
@@ -454,11 +759,11 @@
             if (event.target.closest('.document-actions')) {
                 return;
             }
-            
+
             // Ensure docId is treated consistently (convert to string)
             docId = String(docId);
             console.log('Card click toggle:', docId, typeof docId);
-            
+
             // Toggle selection
             if (selectedDocuments.has(docId)) {
                 selectedDocuments.delete(docId);
@@ -470,12 +775,12 @@
                 if (!selectedArray.includes(docId)) selectedArray.push(docId);
                 console.log('Added to selection via card click:', docId);
             }
-            
+
             // Update the specific card immediately
             updateDocumentSelection(docId);
             updateStats();
             updateButtons();
-            
+
             console.log('After card click - selectedDocuments:', Array.from(selectedDocuments));
             console.log('After card click - selectedArray:', selectedArray);
         }
@@ -483,13 +788,13 @@
         function updateDocumentSelection(docId) {
             // Ensure docId is treated consistently (convert to string)
             docId = String(docId);
-            
+
             const card = document.getElementById(`doc-${docId}`);
             if (!card) {
                 console.warn('Card not found for docId:', docId);
                 return;
             }
-            
+
             if (selectedDocuments.has(docId)) {
                 card.classList.add('selected');
                 console.log('Selected card (visual only):', docId);
@@ -502,13 +807,13 @@
         function selectAll() {
             selectedDocuments.clear(); // Clear first to ensure clean state
             selectedArray.length = 0; // Clear backup array
-            
+
             documents.forEach(doc => {
                 const docId = String(doc.id);
                 selectedDocuments.add(docId); // Ensure string type
                 selectedArray.push(docId); // Add to backup array
             });
-            
+
             console.log('Select all - total selected in Set:', selectedDocuments.size);
             console.log('Select all - total selected in Array:', selectedArray.length);
             renderDocuments(); // Re-render to ensure consistent state
@@ -530,7 +835,7 @@
             console.log('updateStats called - selectedArray.length:', selectedArray.length);
             console.log('selectedDocuments contents:', Array.from(selectedDocuments));
             console.log('selectedArray contents:', selectedArray);
-            
+
             document.getElementById('totalDocs').textContent = documents.length;
             // Use array length as backup
             const displayCount = Math.max(selectedDocuments.size, selectedArray.length);
@@ -550,19 +855,19 @@
             }
 
             showLoading(true);
-            
+
             try {
                 const response = await fetch(`/text-manage/text/${docId}`, {
                     method: 'DELETE'
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 // Remove from selected documents
                 selectedDocuments.delete(String(docId));
-                
+
                 // Reload documents
                 await loadDocuments();
                 showMessage('Document deleted successfully!', 'success');
@@ -601,7 +906,7 @@
                     const response = await fetch(`/text-manage/text/${docId}`, {
                         method: 'DELETE'
                     });
-                    
+
                     if (response.ok) {
                         successCount++;
                         console.log(`Successfully deleted: ${docId}`);
@@ -618,15 +923,15 @@
             // Clear both tracking mechanisms
             selectedDocuments.clear();
             selectedArray.length = 0;
-            
+
             await loadDocuments();
-            
+
             if (errorCount === 0) {
                 showMessage(`Successfully deleted ${successCount} documents!`, 'success');
             } else {
                 showMessage(`Deleted ${successCount} documents, ${errorCount} failed`, 'error');
             }
-            
+
             showLoading(false);
             console.log('Bulk delete completed');
         }
@@ -641,7 +946,7 @@
 
             try {
                 // Get selected documents data - use String conversion for consistency
-                const selectedDocs = documents.filter(doc => 
+                const selectedDocs = documents.filter(doc =>
                     selectedDocuments.has(String(doc.id)) || selectedArray.includes(String(doc.id))
                 );
 
@@ -653,8 +958,17 @@
                     throw new Error('No documents found for selected IDs');
                 }
 
+                // Get selected index
+                const indexDropdown = document.getElementById('indexDropdown');
+                const selectedIndex = indexDropdown.value;
+                if (!selectedIndex) {
+                    showMessage('Please select an Index before uploading.', 'error');
+                    return;
+                }
+
                 // Prepare the payload to match the API expectations
                 const payload = {
+                    index: selectedIndex,
                     value: selectedDocs.map(doc => ({
                         content: doc.content || '',
                         source: doc.source || 'unknown',
@@ -684,10 +998,10 @@
                 const result = await response.json();
                 console.log('Upload result:', result);
                 showMessage(`${result.message} (${result.uploaded_count || result.successful_uploads || selectedDocs.length} documents)`, 'success');
-                
+
                 // Clear selection after successful upload
                 deselectAll();
-                
+
             } catch (error) {
                 console.error('Error uploading to Azure:', error);
                 showMessage('Failed to upload to Azure: ' + error.message, 'error');
@@ -709,7 +1023,7 @@
             const message = document.getElementById('message');
             message.textContent = text;
             message.className = `message ${type} show`;
-            
+
             setTimeout(() => {
                 hideMessage();
             }, 5000);
@@ -736,4 +1050,5 @@
         }
     </script>
 </body>
+
 </html>
