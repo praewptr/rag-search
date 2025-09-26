@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import setup_logging
-from routers import azure_index, search, text_manage
+from routers import azure_index, create_indexer, search, text_manage, upload_pdf
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(__file__), ".env")
@@ -36,6 +36,12 @@ app.include_router(text_manage.router, prefix="/text-manage", tags=["Text Manage
 app.include_router(
     azure_index.router, prefix="/azure-index", tags=["Azure Index Browser"]
 )
+app.include_router(upload_pdf.router, prefix="/upload-pdf", tags=["Upload PDF"])
+app.include_router(
+    create_indexer.router,
+    prefix="/create-indexer",
+    tags=["Create Azure Search Components"],
+)
 
 
 @app.get("/")
@@ -56,7 +62,25 @@ async def serve_azure_browser():
     return FileResponse("static/azure_index.html")
 
 
+@app.get("/pdf-upload")
+async def serve_pdf_upload():
+    """Serve the PDF upload UI."""
+    return FileResponse("static/upload_pdf.html")
+
+
+@app.get("/indexer-manager")
+async def serve_indexer_manager():
+    """Serve the Indexer Manager UI."""
+    return FileResponse("static/indexer_manager.html")
+
+
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=5099)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=5099,
+        access_log=False,  # Disable access logs
+        log_level="warning",  # Only show warnings and errors
+    )
