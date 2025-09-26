@@ -47,132 +47,143 @@
         }
 
         .content {
-            padding: 25px;
+            padding: 30px;
         }
 
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
         }
 
         .section-header {
             text-align: center;
-            margin: 25px 0 20px 0;
-            padding: 15px;
+            margin: 35px 0 25px 0;
+            padding: 20px;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .section-header h2 {
-            font-size: 1.5em;
+            font-size: 1.6em;
             color: #495057;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .section-header p {
             color: #6c757d;
-            font-size: 0.95em;
-            opacity: 0.8;
+            font-size: 1em;
+            opacity: 0.85;
         }
 
         .tool-card {
             background: white;
-            border-radius: 15px;
-            padding: 20px;
+            border-radius: 18px;
+            padding: 25px;
             text-align: center;
             transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
             border: 2px solid transparent;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
             border-color: #6c757d;
         }
 
         .tool-icon {
-            font-size: 2.5em;
-            margin-bottom: 12px;
+            font-size: 2.8em;
+            margin-bottom: 15px;
         }
 
         .tool-card h3 {
-            font-size: 1.4em;
-            margin-bottom: 10px;
+            font-size: 1.5em;
+            margin-bottom: 12px;
             color: #495057;
+            font-weight: 700;
         }
 
         .tool-card p {
             color: #6c757d;
-            margin-bottom: 15px;
-            line-height: 1.4;
-            font-size: 0.95em;
+            margin-bottom: 18px;
+            line-height: 1.5;
+            font-size: 1em;
+            flex-grow: 1;
         }
 
         .tool-btn {
             display: inline-block;
-            padding: 10px 20px;
+            padding: 12px 25px;
             background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
             color: white;
             text-decoration: none;
-            border-radius: 25px;
+            border-radius: 30px;
             font-weight: 600;
-            font-size: 0.95em;
+            font-size: 1em;
             transition: all 0.3s ease;
+            margin-top: auto;
         }
 
         .tool-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            text-decoration: none;
+            color: white;
         }
 
         .features-list {
             list-style: none;
             text-align: left;
-            margin: 12px 0;
+            margin: 15px 0;
+            padding: 0;
         }
 
         .features-list li {
-            padding: 2px 0;
+            padding: 4px 0;
             color: #495057;
-            font-size: 0.9em;
+            font-size: 0.95em;
+            line-height: 1.4;
         }
 
         .features-list li:before {
             content: "✅ ";
-            margin-right: 6px;
+            margin-right: 8px;
         }
 
         .api-section {
-            margin-top: 25px;
-            padding: 20px;
+            margin-top: 35px;
+            padding: 25px;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
 
         .api-section h2 {
             color: #495057;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             text-align: center;
-            font-size: 1.4em;
+            font-size: 1.5em;
+            font-weight: 700;
         }
 
         .chat-banner {
             background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 25px 0;
-            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.2);
+            border-radius: 20px;
+            padding: 25px;
+            margin: 0 0 35px 0;
+            box-shadow: 0 10px 30px rgba(108, 117, 125, 0.2);
             transition: all 0.3s ease;
         }
 
         .chat-banner:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 25px rgba(108, 117, 125, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(108, 117, 125, 0.3);
         }
 
         .chat-banner-content {
@@ -297,22 +308,17 @@
                 </div>
             </div>
 
-            <!-- Text Data Section -->
-            <div class="section-header">
-                <h2>� Text Data Management</h2>
-                <p>For managing text content and browsing existing indexed data</p>
-            </div>
             <div class="tools-grid">
                 <!-- Data Manager -->
                 <div class="tool-card">
                     <div class="tool-icon">📋</div>
-                    <h3>Data Manager</h3>
-                    <p>Manage your document database before uploading to Azure AI Search.</p>
+                    <h3>Knowledge Data Manager</h3>
+                    <p>Manage knowledge from database before uploading to Azure AI Search.</p>
                     <ul class="features-list">
-                        <li>Load from mock database</li>
-                        <li>Select & delete documents</li>
-                        <li>Batch operations</li>
+                        <li>Load knowledge data from database</li>
+                        <li>Select & delete knowledge data</li>
                         <li>Upload to Azure Search</li>
+                        <li>Create index to Azure (Just for text)</li>
                     </ul>
                     <a href="/text-manager" class="tool-btn">Manage Data</a>
                 </div>
@@ -323,21 +329,14 @@
                     <h3>Azure Index Browser</h3>
                     <p>Browse and search your Azure AI Search text index with advanced filtering.</p>
                     <ul class="features-list">
-                        <li>Search existing documents</li>
                         <li>Browse all indexed content</li>
-                        <li>Pagination & filtering</li>
                         <li>Document details view</li>
+                        <li>Delete documents from index</li>
+                        <li>Switch between indexes</li>
                     </ul>
                     <a href="/azure-browser" class="tool-btn">Browse Index</a>
                 </div>
-            </div>
 
-            <!-- PDF File Section -->
-            <div class="section-header">
-                <h2>📄 PDF File Processing</h2>
-                <p>For uploading and processing PDF documents through Azure Search</p>
-            </div>
-            <div class="tools-grid">
                 <!-- PDF Upload -->
                 <div class="tool-card">
                     <div class="tool-icon">📤</div>
@@ -352,10 +351,10 @@
                     <a href="/pdf-upload" class="tool-btn">Upload PDFs</a>
                 </div>
 
-                <!-- Indexer Manager -->
+                <!-- Upload PDF to Azure -->
                 <div class="tool-card">
                     <div class="tool-icon">🔄</div>
-                    <h3>Indexer Manager</h3>
+                    <h3>Upload PDF to Azure</h3>
                     <p>Upload documents to Azure Search indexers with automatic processing and indexing.</p>
                     <ul class="features-list">
                         <li>Select Azure Search indexers</li>
