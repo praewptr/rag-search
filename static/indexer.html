@@ -379,11 +379,15 @@
                     </select>
                 </div>
                 <button id="refreshIndexersBtn" class="btn btn-secondary">🔄 Refresh Indexers</button>
+                <button id="runIndexerBtn" class="btn" disabled>
+                    <span class="status-indicator status-ready"></span>
+                    Run Selected Indexer
+                </button>
                 <div id="indexerStatus" class="result-message"></div>
             </div>
 
             <!-- Upload to Indexer Section -->
-            <div class="section">
+            <!-- <div class="section">
                 <h2>Upload to Indexer</h2>
                 <form id="uploadForm">
                     <div class="upload-area" id="uploadArea">
@@ -403,10 +407,10 @@
                         <span class="status-indicator status-ready"></span>
                         Upload to Selected Indexer
                     </button>
-                </form>
-                <div id="uploadResult" class="result-message"></div>
-            </div>
+                </form> -->
+            <div id="uploadResult" class="result-message"></div>
         </div>
+    </div>
     </div>
 
     <script>
@@ -435,6 +439,7 @@
             indexerSelect.addEventListener('change', (e) => {
                 selectedIndexer = e.target.value;
                 updateUploadButtonState();
+                updateRunIndexerButtonState();
                 showStatus('indexer', `Selected indexer: ${selectedIndexer}`, 'info');
             });
 
@@ -450,6 +455,44 @@
 
             // Upload form
             uploadForm.addEventListener('submit', handleUpload);
+
+            // Run indexer button
+            const runIndexerBtn = document.getElementById('runIndexerBtn');
+            runIndexerBtn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                if (!selectedIndexer) {
+                    showStatus('indexer', 'Please select an indexer', 'error');
+                    return;
+                }
+                try {
+                    runIndexerBtn.disabled = true;
+                    runIndexerBtn.innerHTML = '<span class="status-indicator status-loading"></span>Running...';
+                    const response = await fetch(`/indexer/run-indexer?indexer_name=${encodeURIComponent(selectedIndexer)}`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        showStatus('indexer', result.message || 'Indexer run successfully!', 'success');
+                    } else {
+                        throw new Error(result.detail || 'Run failed');
+                    }
+                } catch (error) {
+                    showStatus('indexer', `Run failed: ${error.message}`, 'error');
+                } finally {
+                    runIndexerBtn.innerHTML = '<span class="status-indicator status-ready"></span>Run Selected Indexer';
+                    updateRunIndexerButtonState();
+                }
+            });
+        }
+        function updateRunIndexerButtonState() {
+            const runIndexerBtn = document.getElementById('runIndexerBtn');
+            const canRun = !!selectedIndexer;
+            runIndexerBtn.disabled = !canRun;
+            if (canRun) {
+                runIndexerBtn.querySelector('.status-indicator').className = 'status-indicator status-ready';
+            } else {
+                runIndexerBtn.querySelector('.status-indicator').className = 'status-indicator status-error';
+            }
         }
 
         // Load available indexers
@@ -458,7 +501,7 @@
                 showStatus('indexer', 'Loading indexers...', 'info');
                 indexerSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
 
-                const response = await fetch('/upload-pdf/list-indexers');
+                const response = await fetch('/create-service/list-indexers');
                 const data = await response.json();
 
                 if (response.ok && data.indexers) {

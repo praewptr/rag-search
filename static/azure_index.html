@@ -333,13 +333,14 @@
         .document-content {
             color: #495057;
             line-height: 1.4;
-            font-size: 1.1em;
+            font-size: 1.0em;
             font-weight: 600;
             margin-bottom: 4px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 500px;
+            /* Allow full content display */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-width: 100%;
+            text-align: left;
         }
 
         .document-timestamp {
@@ -485,12 +486,8 @@
 
             .document-content {
                 max-width: 100%;
-                white-space: normal;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                line-clamp: 2;
-                overflow: hidden;
+                white-space: pre-wrap;
+                word-wrap: break-word;
             }
         }
     </style>
@@ -575,7 +572,7 @@
 
         async function loadAvailableIndexes() {
             try {
-                const response = await fetch('/azure-index/indexes');
+                const response = await fetch('/create-service/list-indexes');
                 if (response.ok) {
                     const data = await response.json();
                     const dropdown = document.getElementById('indexDropdown');
@@ -881,7 +878,7 @@
                                 <div class="document-source">${escapeHtml(doc.source)}</div>
                             </div>
                             <div class="document-content" title="${escapeHtml(doc.content)}">
-                                ${escapeHtml(doc.content.substring(0, 120))}${doc.content.length > 120 ? '...' : ''}
+                                ${escapeHtml(doc.content)}
                             </div>
                             <div class="document-timestamp">
                                 ${formatTimestamp(doc.timestamp)}

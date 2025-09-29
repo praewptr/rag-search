@@ -1,10 +1,9 @@
+from pathlib import Path
 from typing import List
 
-import requests
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
 from config import (
-    azure_search_endpoint,
     azure_search_key,
 )
 from services.client import blob_container_client, blob_service_client
@@ -67,19 +66,6 @@ async def upload_to_blob(
         )
 
 
-@router.get("/list")
-async def list_blobs() -> List[str]:
-    try:
-        # Retrieve and list blobs in the container
-        container_client = blob_service_client.get_container_client(
-            blob_container_client.container_name
-        )
-        blobs = [blob.name for blob in container_client.list_blobs()]
-        return blobs
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list blobs: {str(e)}")
-
-
 @router.get("/list-files/{container_name}")
 async def list_files_from_container(container_name: str) -> List[str]:
     """List all files from a specific container."""
@@ -91,38 +77,6 @@ async def list_files_from_container(container_name: str) -> List[str]:
         raise HTTPException(
             status_code=500,
             detail=f"Failed to list files from container '{container_name}': {str(e)}",
-        )
-
-
-@router.get("/list-indexers")
-async def list_indexers():
-    """List all available indexers from Azure Search."""
-    try:
-        response = requests.get(
-            f"{azure_search_endpoint}/indexers?api-version=2023-10-01-Preview",
-            headers=headers,
-        )
-
-        if response.status_code == 200:
-            indexers_data = response.json()
-            indexers = indexers_data.get("value", [])
-            return {
-                "status": "success",
-                "indexers": [
-                    {"name": indexer["name"], "status": indexer.get("status")}
-                    for indexer in indexers
-                ],
-                "count": len(indexers),
-            }
-        else:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"Failed to list indexers: {response.text}",
-            )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"An error occurred while listing indexers: {str(e)}",
         )
 
 
@@ -146,3 +100,36 @@ async def list_containers():
         raise HTTPException(
             status_code=500, detail=f"Failed to list containers: {str(e)}"
         )
+
+
+@router.get("/list-documents", response_model=List[str])
+def list_documents():
+    """
+    List all document filenames in the documents folder.
+    """
+    DOCUMENTS_PATH = Path("C:/Users/PANTHIRA/mock_folder")
+    if not DOCUMENTS_PATH.exists():
+        return []
+
+    # List only files (not directories)
+    file_list = [file.name for file in DOCUMENTS_PATH.iterdir() if file.is_file()]
+    return file_list
+
+
+@router.delete("/delete-document/{filename}")
+def delete_document(filename: str):
+    """
+    Delete a document by filename from the documents folder.
+    """
+
+    DOCUMENTS_PATH = Path("C:/Users/PANTHIRA/mock_folder")
+    file_path = DOCUMENTS_PATH / filename
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    try:
+        file_path.unlink()
+        return {"message": f"{filename} deleted successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

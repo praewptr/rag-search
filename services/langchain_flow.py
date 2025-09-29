@@ -4,19 +4,18 @@ from langchain.docstore.document import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableMap, RunnablePassthrough
-from langchain_openai import AzureOpenAIEmbeddings
 
 from config import azure_search_index_doc, azure_search_index_txt
 from services.client import llm, retriever_pdf, retriever_text
 
 prompt = ChatPromptTemplate.from_template(
-    """You are an expert assistant providing accurate answers based **strictly on document context**. 
+    """You are an expert assistant providing answers based strictly on document context. 
     **CRITICAL: Respond in the SAME language as the user's question.**
 
     **Language Rules:**
     - English question → English answer (clear, professional)
     - Thai question → Thai answer (natural, conversational Thai - not direct translation)
-    - Focus on main language, ignore technical terms in parentheses
+    - Focus on main language
 
     **Format:**
     - headings for clarity
@@ -24,9 +23,9 @@ prompt = ChatPromptTemplate.from_template(
     - Professional yet friendly tone
 
     **Strict Rules:**
-    - ⚠️ ONLY use information from provided documents
-    - ⚠️ NO citation markers [doc1], [source], URLs
-    - ⚠️ NO assumptions beyond document content
+    - ONLY use information from provided documents
+    - NO citation markers [doc1], [source], URLs
+    - NO assumptions beyond document content
 
     **If insufficient info:**
     - Thai: 'ขออภัย ไม่มีข้อมูลเพียงพอในเอกสารสำหรับคำถามนี้'
@@ -49,12 +48,6 @@ def format_docs(docs: List[Document]) -> str:
         f"Source: {doc.metadata.get('source_index', 'unknown')}\n{doc.page_content}"
         for doc in docs
     )
-
-
-class DebugEmbedding(AzureOpenAIEmbeddings):
-    def embed_query(self, text):
-        print(f"Embedding this query: {text}")
-        return super().embed_query(text)
 
 
 def retrieve_and_rank(question: str, top_k: int = 5) -> List[Document]:

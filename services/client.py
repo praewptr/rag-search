@@ -70,7 +70,6 @@ llm = AzureChatOpenAI(
 # -------------langchain Retriver PDF------------------#
 retriever_pdf = AzureAISearchRetriever(
     content_key="chunk",
-    top_k=1,
     index_name=azure_search_index_doc,
     service_name=azure_search_endpoint.replace("https://", "").replace(
         ".search.windows.net", ""

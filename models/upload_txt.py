@@ -22,12 +22,6 @@ class DocumentItem(BaseModel):
         extra = "allow"
 
 
-class BulkUploadRequest(BaseModel):
-    """Pydantic model for bulk upload requests."""
-
-    value: List[DocumentItem] = Field(..., description="List of documents to upload")
-
-
 class UploadResponse(BaseModel):
     """Pydantic model for upload responses."""
 

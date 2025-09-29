@@ -15,40 +15,6 @@ from utils.text_manage import (
 router = APIRouter()
 
 
-# Debug endpoint to check Oracle table structure
-@router.get("/text-debug")
-async def debug_oracle_structure():
-    """
-    Debug endpoint to check the structure of Oracle data.
-    """
-    try:
-        data = oracle_service.fetch_knowledge_data()
-
-        # Get sample record structure
-        sample_structure = {}
-        if data.get("value") and len(data["value"]) > 0:
-            sample_record = data["value"][0]
-            for key, value in sample_record.items():
-                sample_structure[key] = {
-                    "type": type(value).__name__,
-                    "sample_value": str(value)[:100] + "..."
-                    if len(str(value)) > 100
-                    else str(value),
-                }
-
-        return {
-            "total_records": len(data.get("value", [])),
-            "columns": list(sample_structure.keys()),
-            "sample_structure": sample_structure,
-            "first_record": data.get("value", [{}])[0] if data.get("value") else {},
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to debug Oracle structure: {str(e)}"
-        )
-
-
-# API Endpoints
 @router.get("/text", response_model=DocumentResponse)
 async def get_documents():
     """

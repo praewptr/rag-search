@@ -119,7 +119,6 @@ def create_vector_search_config(name: str) -> dict:
                 "kind": "azureOpenAI",
                 "azureOpenAIParameters": {
                     "resourceUri": azure_emb_oai_endpoint,
-                    "deploymentId": azure_emb_oai_deployment,
                     "apiKey": azure_emb_oai_key,
                     "modelName": azure_emb_oai_deployment,
                 },
@@ -136,12 +135,17 @@ def create_datasource(name: str, container_name: str):
         "credentials": {"connectionString": azure_storage_connection_str},
         "container": {"name": container_name},
     }
-    response = requests.put(
-        f"{azure_search_endpoint}/datasources/{name}?api-version=2023-10-01-Preview",
-        headers=headers,
-        json=datasource_payload,
-    )
-    return response
+    try:
+        response = requests.put(
+            f"{azure_search_endpoint}/datasources/{name}?api-version=2023-10-01-Preview",
+            headers=headers,
+            json=datasource_payload,
+        )
+        return response
+
+    except Exception as e:
+        print(f"Error creating datasource: {e}")
+        return None
 
 
 def create_skillset(name: str):
