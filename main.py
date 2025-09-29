@@ -35,7 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="rag-search/static"), name="static")
 
 # Include routers
 app.include_router(search.router, prefix="/search", tags=["AI RAG SEARCH"])
