@@ -68,31 +68,31 @@ app.include_router(
 @app.get("/")
 async def serve_dashboard():
     """Serve the main dashboard."""
-    return FileResponse("static/dashboard.html")
+    return FileResponse("rag-search/static/dashboard.html")
 
 
 @app.get("/rag-upload-text")
 async def serve_data_manager():
     """Serve the data manager UI."""
-    return FileResponse("static/rag_upload_text.html")
+    return FileResponse("rag-search/static/rag_upload_text.html")
 
 
 @app.get("/azure-index")
 async def serve_azure_browser():
     """Serve the Azure Search index browser UI."""
-    return FileResponse("static/azure_index.html")
+    return FileResponse("rag-search/static/azure_index.html")
 
 
 @app.get("/pdf-upload")
 async def serve_pdf_upload():
     """Serve the PDF upload UI."""
-    return FileResponse("static/upload_pdf.html")
+    return FileResponse("rag-search/static/upload_pdf.html")
 
 
 @app.get("/rag-upload-pdf")
 async def serve_indexer_manager():
     """Serve the Indexer Manager UI."""
-    return FileResponse("static/indexer.html")
+    return FileResponse("rag-search/static/indexer.html")
 
 
 if __name__ == "__main__":

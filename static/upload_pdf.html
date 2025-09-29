@@ -388,19 +388,20 @@
         <div class="content">
 
             <div class="upload-section">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📁</div>
-                    <div class="upload-text">Drop your PDF file here or click to browse</div>
-                    <div class="upload-subtext">Only PDF files are supported</div>
-                    <input type="file" class="file-input" id="fileInput" accept=".pdf" />
-                </div>
-
-                <div class="selected-file" id="selectedFile">
-                    <div class="file-info">
-                        <div class="file-name" id="fileName"></div>
-                        <div class="file-size" id="fileSize"></div>
+                <div>
+                    <h3 style="margin-bottom:18px;font-size:1.2em;color:#495057;">Choose a PDF from Server Folder</h3>
+                    <div id="serverDocIcons"
+                        style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:22px;margin-bottom:18px;">
                     </div>
-                    <button class="remove-file" id="removeFile">×</button>
+                    <div id="docPreview"
+                        style="display:none;position:absolute;z-index:1000;background:#fff;border:1px solid #ced4da;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:16px;max-width:400px;max-height:250px;overflow:auto;font-family:monospace;white-space:pre-wrap;">
+                    </div>
+                    <div class="selected-file" id="selectedFile" style="display:none;">
+                        <div class="file-info">
+                            <div class="file-name" id="fileName"></div>
+                        </div>
+                        <button class="remove-file" id="removeFile">×</button>
+                    </div>
                 </div>
 
                 <div class="options">
@@ -449,11 +450,9 @@
     </div>
 
     <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
+        const serverDocIcons = document.getElementById('serverDocIcons');
         const selectedFile = document.getElementById('selectedFile');
         const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
         const removeFile = document.getElementById('removeFile');
         const uploadBtn = document.getElementById('uploadBtn');
         const overwriteCheck = document.getElementById('overwriteCheck');
@@ -467,51 +466,136 @@
         const uploadContainerSelect = document.getElementById('uploadContainerSelect');
 
         let currentFile = null;
+        let selectedServerDoc = null;
         let allFiles = [];
         let containers = [];
 
-        // Upload area click handler
-        uploadArea.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        // Drag and drop handlers
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileSelection(files[0]);
-            }
-        });
-
-        // File input change handler
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileSelection(e.target.files[0]);
-            }
-        });
+        // Load document list from /list-documents and allow selection
+        function setupServerDocPicker() {
+            fetch('/upload-pdf/list-documents')
+                .then(res => res.json())
+                .then(docs => {
+                    serverDocIcons.innerHTML = '';
+                    if (docs.length === 0) {
+                        serverDocIcons.innerHTML = '<div style="color:#6c757d;">No documents found</div>';
+                    } else {
+                        const docPreview = document.getElementById('docPreview');
+                        docs.forEach(doc => {
+                            const iconDiv = document.createElement('div');
+                            iconDiv.style.display = 'flex';
+                            iconDiv.style.flexDirection = 'column';
+                            iconDiv.style.alignItems = 'center';
+                            iconDiv.style.cursor = 'pointer';
+                            iconDiv.style.background = '#fff';
+                            iconDiv.style.border = '1.5px solid #e9ecef';
+                            iconDiv.style.borderRadius = '12px';
+                            iconDiv.style.padding = '18px 8px 10px 8px';
+                            iconDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                            iconDiv.style.transition = 'border 0.2s, box-shadow 0.2s';
+                            iconDiv.style.marginBottom = '0';
+                            iconDiv.title = doc;
+                            iconDiv.innerHTML = `<div style="font-size:2.2em;margin-bottom:8px;">📄</div><div style="font-size:0.98em;color:#495057;word-break:break-all;text-align:center;max-width:110px;">${doc}</div>`;
+                            // Download button
+                            const downloadBtn = document.createElement('button');
+                            downloadBtn.textContent = '⬇';
+                            downloadBtn.title = 'Download';
+                            downloadBtn.style.marginTop = '7px';
+                            downloadBtn.style.border = 'none';
+                            downloadBtn.style.background = 'transparent';
+                            downloadBtn.style.cursor = 'pointer';
+                            downloadBtn.style.fontSize = '1.2em';
+                            downloadBtn.style.color = '#138496';
+                            downloadBtn.addEventListener('click', async (e) => {
+                                e.stopPropagation();
+                                const filepath = `C:/Users/PANTHIRA/mock_folder/${doc}`;
+                                window.open(`/upload-pdf/download-document?filepath=${encodeURIComponent(filepath)}`);
+                            });
+                            iconDiv.appendChild(downloadBtn);
+                            iconDiv.addEventListener('click', () => {
+                                Array.from(serverDocIcons.children).forEach(child => {
+                                    child.style.border = '1.5px solid #e9ecef';
+                                    child.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                                });
+                                iconDiv.style.border = '2.5px solid #138496';
+                                iconDiv.style.boxShadow = '0 4px 16px rgba(19,132,150,0.12)';
+                                selectedServerDoc = doc;
+                                fileName.textContent = doc;
+                                selectedFile.style.display = 'flex';
+                                uploadBtn.disabled = false;
+                            });
+                            // Preview on hover
+                            iconDiv.addEventListener('mouseenter', async (e) => {
+                                docPreview.style.display = 'block';
+                                docPreview.textContent = 'Loading preview...';
+                                const filepath = `C:/Users/PANTHIRA/mock_folder/${doc}`;
+                                try {
+                                    const response = await fetch(`/upload-pdf/load-document?filepath=${encodeURIComponent(filepath)}`);
+                                    const result = await response.json();
+                                    if (response.ok && result.content) {
+                                        docPreview.textContent = result.content.slice(0, 1000) + (result.content.length > 1000 ? '\n... (truncated)' : '');
+                                    } else {
+                                        docPreview.textContent = 'Preview unavailable.';
+                                    }
+                                } catch {
+                                    docPreview.textContent = 'Preview unavailable.';
+                                }
+                                const rect = e.target.getBoundingClientRect();
+                                docPreview.style.left = (rect.right + 10 + window.scrollX) + 'px';
+                                docPreview.style.top = (rect.top + window.scrollY) + 'px';
+                            });
+                            iconDiv.addEventListener('mouseleave', () => {
+                                docPreview.style.display = 'none';
+                            });
+                            serverDocIcons.appendChild(iconDiv);
+                        });
+                    }
+                })
+                .catch(() => {
+                    serverDocIcons.innerHTML = '<div style="color:#dc3545;">Error loading documents</div>';
+                });
+        }
 
         // Remove file handler
         removeFile.addEventListener('click', () => {
-            currentFile = null;
+            selectedServerDoc = null;
             selectedFile.style.display = 'none';
             uploadBtn.disabled = true;
-            fileInput.value = '';
+            Array.from(serverDocIcons.children).forEach(child => child.style.border = '');
         });
 
         // Upload button handler
-        uploadBtn.addEventListener('click', uploadFile);
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedServerDoc) return;
+            const selectedContainer = uploadContainerSelect.value;
+            if (!selectedContainer) {
+                showResult('Please select a container to upload to!', 'error');
+                return;
+            }
+            uploadBtn.disabled = true;
+            progressBar.style.display = 'block';
+            hideResult();
+            try {
+                const url = `/upload-pdf/upload-server-doc?filename=${encodeURIComponent(selectedServerDoc)}&container_name=${encodeURIComponent(selectedContainer)}`;
+                const response = await fetch(url, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                    showResult(`✅ ${result.message}`, 'success');
+                    selectedServerDoc = null;
+                    selectedFile.style.display = 'none';
+                    Array.from(serverDocIcons.children).forEach(child => child.style.border = '');
+                } else {
+                    showResult(`❌ ${result.detail}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Upload failed: ${error.message}`, 'error');
+            } finally {
+                uploadBtn.disabled = true;
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 1000);
+            }
+        });
 
         // Refresh button handler
         refreshBtn.addEventListener('click', loadFilesList);
@@ -525,19 +609,7 @@
             }
         });
 
-        function handleFileSelection(file) {
-            if (!file.name.toLowerCase().endsWith('.pdf')) {
-                showResult('Only PDF files are allowed!', 'error');
-                return;
-            }
-
-            currentFile = file;
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            selectedFile.style.display = 'flex';
-            uploadBtn.disabled = false;
-            hideResult();
-        }
+        // No local file selection needed
 
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
@@ -547,67 +619,7 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        async function uploadFile() {
-            if (!currentFile) return;
-
-            const selectedContainer = uploadContainerSelect.value;
-            if (!selectedContainer) {
-                showResult('Please select a container to upload to!', 'error');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('file', currentFile);
-
-            const overwrite = overwriteCheck.checked;
-            const url = `/upload-pdf/upload?overwrite=${overwrite}&container_name=${encodeURIComponent(selectedContainer)}`;
-
-            uploadBtn.disabled = true;
-            progressBar.style.display = 'block';
-            hideResult();
-
-            try {
-                // Simulate progress (since we can't track real upload progress easily)
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    progress += Math.random() * 30;
-                    if (progress > 90) progress = 90;
-                    progressFill.style.width = progress + '%';
-                }, 200);
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                clearInterval(progressInterval);
-                progressFill.style.width = '100%';
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showResult(`✅ ${result.message}`, 'success');
-                    // Clear the form
-                    currentFile = null;
-                    selectedFile.style.display = 'none';
-                    fileInput.value = '';
-                    // Refresh the files list if viewing the same container
-                    if (containerSelect.value === selectedContainer) {
-                        loadFilesFromContainer(selectedContainer);
-                    }
-                } else {
-                    showResult(`❌ ${result.detail}`, 'error');
-                }
-            } catch (error) {
-                showResult(`❌ Upload failed: ${error.message}`, 'error');
-            } finally {
-                uploadBtn.disabled = currentFile === null;
-                setTimeout(() => {
-                    progressBar.style.display = 'none';
-                    progressFill.style.width = '0%';
-                }, 1000);
-            }
-        }
+        // No local file upload function needed
 
         async function loadFilesList() {
             // Load containers first, then files from the selected container
@@ -709,6 +721,7 @@
         // Load files list on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadFilesList();
+            setupServerDocPicker();
         });
     </script>
 </body>

@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 
 from config import (
     azure_search_key,
@@ -26,6 +27,19 @@ def get_blob_client(filename: str, container_name: str = None):
             blob_container_client.container_name
         )
     return container_client.get_blob_client(filename)
+
+
+@router.get("/download-document")
+async def download_document(filepath: str):
+    """
+    Download a document file from the server folder.
+    """
+    file_path = Path(filepath)
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found.")
+    return FileResponse(
+        str(file_path), filename=file_path.name, media_type="application/pdf"
+    )
 
 
 @router.post("/upload")
