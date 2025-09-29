@@ -9,7 +9,7 @@ from services.utils import remove_citation_markers
 router = APIRouter()
 
 
-@router.post("/aisearch")
+@router.post("/test")
 def ask_question(request: QuestionRequest):
     try:
         answer, citations = get_response(
@@ -38,11 +38,11 @@ def ask_question(request: QuestionRequest):
         )
 
 
-@router.post("/test")
+@router.post("/aisearch")
 def langchain_search(request: QuestionRequest):
     try:
-        answer = generate_answer(request.question)
-        return {"answer": answer}
+        answer = generate_answer(request.text)
+        return {"text": answer}
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error processing request: {str(e)}"

@@ -27,9 +27,7 @@ prompt = ChatPromptTemplate.from_template(
     - NO citation markers [doc1], [source], URLs
     - NO assumptions beyond document content
 
-    **If insufficient info:**
-    - Thai: 'ขออภัย ไม่มีข้อมูลเพียงพอในเอกสารสำหรับคำถามนี้'
-    - English: 'I don't have sufficient information in the documents to answer this question.'
+
 
     Context: {context}
 
@@ -94,9 +92,9 @@ def generate_answer(question: str) -> str:
             if any(
                 "\u0e00" <= c <= "\u0e7f" for c in question
             ):  # Thai unicode range approx
-                return "ขออภัย ไม่มีข้อมูลเพียงพอในเอกสารสำหรับคำถามนี้"
+                return []
             else:
-                return "I don't have sufficient information in the documents to answer this question."
+                return []
 
         # Build a static input dict for RunnableMap to avoid redundant retrievals
         inputs = {

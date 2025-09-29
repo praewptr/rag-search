@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 
 from azure.core.credentials import AzureKeyCredential
@@ -6,6 +7,7 @@ from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
     SearchIndex,
 )
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query
 
 from config import (
@@ -33,6 +35,10 @@ from utils.azure_index import (
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(env_path)
 
 
 @router.post("/create-index", response_model=CreateIndexResponse)
