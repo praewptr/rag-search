@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -35,7 +36,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="rag-search/static"), name="static")
+
+static_dir = Path(__file__).resolve().parent / "static"
+
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Include routers
 app.include_router(search.router, prefix="/search", tags=["AI RAG SEARCH"])
@@ -68,31 +72,31 @@ app.include_router(
 @app.get("/")
 async def serve_dashboard():
     """Serve the main dashboard."""
-    return FileResponse("rag-search/static/dashboard.html")
+    return FileResponse(static_dir / "dashboard.html")
 
 
 @app.get("/rag-upload-text")
 async def serve_data_manager():
     """Serve the data manager UI."""
-    return FileResponse("rag-search/static/rag_upload_text.html")
+    return FileResponse(static_dir / "rag_upload_text.html")
 
 
 @app.get("/azure-index")
 async def serve_azure_browser():
     """Serve the Azure Search index browser UI."""
-    return FileResponse("rag-search/static/azure_index.html")
+    return FileResponse(static_dir / "azure_index.html")
 
 
 @app.get("/pdf-upload")
 async def serve_pdf_upload():
     """Serve the PDF upload UI."""
-    return FileResponse("rag-search/static/upload_pdf.html")
+    return FileResponse(static_dir / "upload_pdf.html")
 
 
 @app.get("/rag-upload-pdf")
 async def serve_indexer_manager():
     """Serve the Indexer Manager UI."""
-    return FileResponse("rag-search/static/indexer.html")
+    return FileResponse(static_dir / "indexer.html")
 
 
 if __name__ == "__main__":
