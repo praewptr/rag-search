@@ -1,0 +1,33 @@
+{
+    "algorithms": [
+        {
+            "name": "vector-config-__NAME__",
+            "kind": "hnsw",
+            "hnswParameters": {
+                "metric": "cosine",
+                "m": 4,
+                "efConstruction": 400,
+                "efSearch": 500
+            }
+        }
+    ],
+    "profiles": [
+        {
+            "name": "vector-profile-__NAME__",
+            "algorithm": "vector-config-__NAME__",
+            "vectorizer": "vectorizer-__NAME__"
+        }
+    ],
+    "vectorizers": [
+        {
+            "name": "vectorizer-__NAME__",
+            "kind": "azureOpenAI",
+            "azureOpenAIParameters": {
+                "resourceUri": "__RESOURCE_URI__",
+                "deploymentid": "__DEPLOYMENT_ID__",
+                "apiKey": "__API_KEY__",
+                "modelName": "__MODEL_NAME__"
+            }
+        }
+    ]
+}
