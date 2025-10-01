@@ -184,8 +184,19 @@
                 <h3><i class="fa fa-table"></i> Index</h3>
                 <button class="icon-btn" id="refreshIndexBtn" title="Refresh"><i class="fa fa-sync"></i></button>
             </div>
-            <label for="idxName">Name</label>
-            <input type="text" id="idxName" placeholder="Index name">
+            <div class="row">
+                <div>
+                    <label for="idxName">Name</label>
+                    <input type="text" id="idxName" placeholder="Index name">
+                </div>
+                <div>
+                    <label for="idxLanguage">Language</label>
+                    <select id="idxLanguage">
+                        <option value="en">English</option>
+                        <option value="th">Thai</option>
+                    </select>
+                </div>
+            </div>
             <button id="createIndexBtn">Create Index</button>
             <div class="result" id="idxResult"></div>
         </div>
@@ -196,8 +207,27 @@
                 <h3><i class="fa fa-magic"></i> Skillset</h3>
                 <button class="icon-btn" id="refreshSkillsetBtn" title="Refresh"><i class="fa fa-sync"></i></button>
             </div>
-            <label for="skillName">Name</label>
-            <input type="text" id="skillName" placeholder="Skillset name">
+            <div class="row">
+                <div>
+                    <label for="skillName">Name</label>
+                    <input type="text" id="skillName" placeholder="Skillset name">
+                </div>
+                <div>
+                    <label for="skillTargetIndex">Target Index</label>
+                    <select id="skillTargetIndex">
+                        <option value="">Select index...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div>
+                    <label for="skillLanguage">OCR Language</label>
+                    <select id="skillLanguage">
+                        <option value="en">English</option>
+                        <option value="th">Thai</option>
+                    </select>
+                </div>
+            </div>
             <button id="createSkillsetBtn">Create Skillset</button>
             <div class="result" id="skillResult"></div>
         </div>
@@ -267,6 +297,7 @@
         }
         async function loadSkillsetDropdown() {
             await loadDropdown('/create-service/list-skillsets', 'indexerSkill');
+            await loadDropdown('/create-service/list-indexes', 'skillTargetIndex');
         }
         async function loadAllDropdowns() {
             await loadDatasourceDropdown();
@@ -290,13 +321,16 @@
             };
             document.getElementById('createIndexBtn').onclick = function () {
                 var data = {
-                    name: document.getElementById('idxName').value
+                    name: document.getElementById('idxName').value,
+                    analyzer_name: document.getElementById('idxLanguage').value
                 };
                 postJson('/create-service/index-pdf', data, document.getElementById('idxResult'));
             };
             document.getElementById('createSkillsetBtn').onclick = function () {
                 var data = {
-                    name: document.getElementById('skillName').value
+                    name: document.getElementById('skillName').value,
+                    target_index_name: document.getElementById('skillTargetIndex').value,
+                    language_code: document.getElementById('skillLanguage').value
                 };
                 postJson('/create-service/skillset', data, document.getElementById('skillResult'));
             };
