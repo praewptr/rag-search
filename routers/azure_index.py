@@ -22,6 +22,9 @@ from models.upload_txt import (
     SearchResult,
     TitleListResponse,
 )
+from services.client import (
+    search_client_pdf,  # Assumes this is a configured SearchClient
+)
 from utils.azure_index import (
     count_documents,
     create_search_fields,
@@ -463,3 +466,61 @@ async def delete_document_from_index(
         raise HTTPException(
             status_code=500, detail=f"Failed to delete document: {str(e)}"
         )
+
+
+@router.delete("/delete-documents-by-title/")
+async def delete_documents_by_title(
+    title: str = Query(..., description="Title of the document to delete"),
+):
+    try:
+        # Step 1: Find documents with matching title
+        results = search_client_pdf.search(
+            search_text=title,
+            select=["text_parent_id", "title", "image_parent_id"],
+            top=100,
+        )
+
+        parent_ids = set()
+        for doc in results:
+            if doc.get("title") == title and doc.get("text_parent_id"):
+                parent_ids.add(doc["text_parent_id"])
+
+        if not parent_ids:
+            raise HTTPException(
+                status_code=404, detail=f"No documents found with title '{title}'"
+            )
+
+        total_deleted = 0
+        documents_to_delete = []
+
+        for target_text_parent_id in parent_ids:
+            # Step 2: Get all docs with matching text_parent_id or image_parent_id
+            results_text = search_client_pdf.search(
+                search_text="*", filter=f"text_parent_id eq '{target_text_parent_id}'"
+            )
+            results_image = search_client_pdf.search(
+                search_text="*", filter=f"image_parent_id eq '{target_text_parent_id}'"
+            )
+
+            # Step 3: Collect chunk_ids
+            for doc in results_text:
+                documents_to_delete.append({"chunk_id": doc["chunk_id"]})
+
+            for doc in results_image:
+                documents_to_delete.append({"chunk_id": doc["chunk_id"]})
+
+        # Step 4: Delete
+        if documents_to_delete:
+            search_client_pdf.delete_documents(documents=documents_to_delete)
+            total_deleted = len(documents_to_delete)
+        else:
+            raise HTTPException(status_code=404, detail="No documents found to delete.")
+
+        return {
+            "message": f"Deleted {total_deleted} documents.",
+            "deleted_count": total_deleted,
+            "title": title,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {e}")

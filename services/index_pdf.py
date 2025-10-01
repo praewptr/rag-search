@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import requests
 from azure.search.documents.indexes.models import (
     SearchField,
@@ -10,11 +13,7 @@ from config import (
     azure_emb_oai_deployment,
     azure_emb_oai_endpoint,
     azure_emb_oai_key,
-    azure_oai_deployment,
-    azure_oai_endpoint,
-    azure_oai_key,
     azure_search_endpoint,
-    azure_search_index_doc,
     azure_search_key,
     azure_storage_connection_str,
 )
@@ -26,13 +25,19 @@ headers = {
 }
 
 
-def create_search_fields(name: str) -> list:
+def create_search_fields(name: str, analyzer_name: str) -> list:
     """
     Define the fields for the Azure Search index.
 
     Returns:
         list: A list of SearchField objects defining the schema.
     """
+    if analyzer_name == "en":
+        analyzer_name = "en.lucene"
+    else:
+        analyzer_name = "th"
+        analyzer_name = "th.lucene"
+
     return [
         SearchField(
             name="chunk_id",
@@ -63,6 +68,7 @@ def create_search_fields(name: str) -> list:
             retrievable=True,
             sortable=False,
             facetable=False,
+            analyzer_name=analyzer_name,
         ),
         SearchField(
             name="title",
@@ -72,6 +78,7 @@ def create_search_fields(name: str) -> list:
             retrievable=True,
             sortable=False,
             facetable=False,
+            analyzer_name=analyzer_name,
         ),
         SearchField(
             name="text_vector",
@@ -83,48 +90,35 @@ def create_search_fields(name: str) -> list:
             vector_search_configuration=f"vector-config-{name}",
             vector_search_profile_name=f"vector-profile-{name}",
         ),
+        SearchField(
+            name="image_vector",
+            type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+            filterable=False,
+            searchable=True,
+            retrievable=True,
+            vector_search_dimensions=1024,
+            vector_search_configuration=f"vector-config-{name}",
+            vector_search_profile_name=f"vector-profile-{name}",
+        ),
     ]
 
 
 def create_vector_search_config(name: str) -> dict:
-    """
-    Define the vector search configuration for the Azure Search index.
+    config_path = Path("vector_config_template.json")
 
-    Returns:
-        dict: A dictionary defining the vector search configuration.
-    """
-    return {
-        "algorithms": [
-            {
-                "name": f"vector-config-{name}",
-                "kind": "hnsw",
-                "hnswParameters": {
-                    "metric": "cosine",
-                    "m": 4,
-                    "efConstruction": 400,
-                    "efSearch": 500,
-                },
-            }
-        ],
-        "profiles": [
-            {
-                "name": f"vector-profile-{name}",
-                "algorithm": f"vector-config-{name}",
-                "vectorizer": f"vectorizer-{name}",
-            }
-        ],
-        "vectorizers": [
-            {
-                "name": f"vectorizer-{name}",
-                "kind": "azureOpenAI",
-                "azureOpenAIParameters": {
-                    "resourceUri": azure_emb_oai_endpoint,
-                    "apiKey": azure_emb_oai_key,
-                    "modelName": azure_emb_oai_deployment,
-                },
-            }
-        ],
-    }
+    with open(config_path, "r", encoding="utf-8") as f:
+        template = json.load(f)
+
+    config_str = json.dumps(template)
+
+    # Replace placeholders
+    config_str = config_str.replace("__NAME__", name)
+    config_str = config_str.replace("__RESOURCE_URI__", azure_emb_oai_endpoint)
+    config_str = config_str.replace("__DEPLOYMENT_ID__", azure_emb_oai_deployment)
+    config_str = config_str.replace("__API_KEY__", azure_emb_oai_key)
+    config_str = config_str.replace("__MODEL_NAME__", azure_emb_oai_deployment)
+
+    return json.loads(config_str)
 
 
 def create_datasource(name: str, container_name: str):
@@ -149,71 +143,28 @@ def create_datasource(name: str, container_name: str):
 
 
 def create_skillset(name: str):
-    """Create a skillset for Azure Search."""
-    skillset_payload = {
-        "name": name,
-        "description": "Skillset to chunk documents and generate embeddings",
-        "skills": [
-            {
-                "@odata.type": "#Microsoft.Skills.Vision.OcrSkill",
-                "context": "/document/normalized_images/*",
-                "lineEnding": "Space",
-                "defaultLanguageCode": "en",
-                "detectOrientation": True,
-                "inputs": [
-                    {"name": "image", "source": "/document/normalized_images/*"}
-                ],
-                "outputs": [{"name": "text", "targetName": "text"}],
-            },
-            {
-                "@odata.type": "#Microsoft.Skills.Text.MergeSkill",
-                "context": "/document",
-                "insertPreTag": " ",
-                "insertPostTag": " ",
-                "inputs": [
-                    {"name": "text", "source": "/document/content"},
-                    {
-                        "name": "itemsToInsert",
-                        "source": "/document/normalized_images/*/text",
-                    },
-                    {
-                        "name": "offsets",
-                        "source": "/document/normalized_images/*/contentOffset",
-                    },
-                ],
-                "outputs": [{"name": "mergedText", "targetName": "mergedText"}],
-            },
-            {
-                "@odata.type": "#Microsoft.Skills.Text.SplitSkill",
-                "context": "/document",
-                "textSplitMode": "pages",
-                "maximumPageLength": 2000,
-                "pageOverlapLength": 500,
-                "inputs": [{"name": "text", "source": "/document/mergedText"}],
-                "outputs": [{"name": "textItems", "targetName": "pages"}],
-            },
-            {
-                "@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill",
-                "context": "/document/pages/*",
-                "resourceUri": azure_oai_endpoint,
-                "apiKey": azure_oai_key,
-                "deploymentId": azure_oai_deployment,
-                "modelName": "text-embedding-3-large",
-                "inputs": [{"name": "text", "source": "/document/pages/*"}],
-                "outputs": [{"name": "embedding", "targetName": "text_vector"}],
-            },
-        ],
-        "cognitiveServices": {
-            "@odata.type": "#Microsoft.Azure.Search.CognitiveServicesByKey",
-            "description": "AI Services",
-            "key": azure_ai_service_key,
-        },
-    }
+    template_path = Path("skillset_template.json")
+
+    with open(template_path, "r", encoding="utf-8") as f:
+        template = f.read()
+
+    # Replace placeholders
+    config_str = (
+        template.replace("__NAME__", name)
+        .replace("__RESOURCE_URI__", azure_emb_oai_endpoint)
+        .replace("__API_KEY__", azure_emb_oai_key)
+        .replace("__DEPLOYMENT_ID__", azure_emb_oai_deployment)
+        .replace("__COGNITIVE_KEY__", azure_ai_service_key)
+    )
+
+    skillset_payload = json.loads(config_str)
+
     response = requests.post(
         f"{azure_search_endpoint}/skillsets?api-version=2024-07-01",
         headers=headers,
         json=skillset_payload,
     )
+
     return response
 
 
@@ -235,7 +186,6 @@ def create_indexer(
     """Create an indexer for Azure Search."""
     payload = {
         "name": name,
-        "description": "an indexer",
         "dataSourceName": datasource_name,
         "targetIndexName": target_index_name,
         "skillsetName": skillset_name,
@@ -256,147 +206,3 @@ def create_indexer(
         headers=headers,
     )
     return response
-
-
-def execute_full_flow(connection_string: str, container_name: str):
-    """Execute the full flow of creating a datasource, skillset, index, and indexer."""
-    try:
-        # Step 1: Create a data source
-        datasource_response = create_datasource(
-            name="test-datasource",
-            connection_string=connection_string,
-            container_name=container_name,
-        )
-        print("Datasource Response:", datasource_response.json())
-
-        # Step 2: Create a skillset
-        skillset_response = create_skillset(name="test-skillset")
-        print("Skillset Response:", skillset_response.json())
-
-        # Step 3: Create an index
-        fields = create_search_fields(name="rag-pdf")
-        vector_search = create_vector_search_config(name="rag-pdf")
-        index_response = create_index(
-            name="rag-index",
-            fields=fields,
-            vector_search=vector_search,
-        )
-        print("Index Response:", index_response)
-
-        # Step 4: Create an indexer
-        indexer_response = create_indexer(
-            name="test-indexer",
-            datasource_name="test-datasource",
-            target_index_name="test-index",
-            skillset_name="test-skillset",
-        )
-        print("Indexer Response:", indexer_response.json())
-
-        print("Full flow executed successfully.")
-    except Exception as e:
-        print(f"An error occurred during the full flow execution: {e}")
-
-
-def upload_new_document(connection_string: str, container_name: str, indexer_name: str):
-    """Upload a new document to blob storage and run the indexer if the index already exists."""
-    try:
-        # Check if the index already exists
-        index_check_response = requests.get(
-            f"{azure_search_endpoint}/indexes/{azure_search_index_doc}?api-version=2023-10-01-Preview",
-            headers=headers,
-        )
-
-        if index_check_response.status_code == 200:
-            print("✅ Index already exists. Uploading new document to blob storage.")
-
-            # Simulate document upload to blob storage
-            print("Uploading document to blob storage...")
-            # Add your blob upload logic here
-
-            # Run the indexer
-            run_response = requests.post(
-                f"{azure_search_endpoint}/indexers/{indexer_name}/run?api-version=2023-10-01-Preview",
-                headers=headers,
-            )
-
-            if run_response.status_code == 202:
-                print("✅ Indexer started successfully (for new files only).")
-            else:
-                print("❌ Failed to run the indexer:", run_response.status_code)
-                print(run_response.text)
-        else:
-            print("❌ Index does not exist. Please create the index first.")
-    except Exception as e:
-        print(
-            f"An error occurred while uploading the document and running the indexer: {e}"
-        )
-
-
-def upload_or_create_index(
-    connection_string: str, container_name: str, index_name: str, indexer_name: str
-):
-    """Upload a document to an existing index or create a new index if it doesn't exist."""
-    try:
-        # Check if the index already exists
-        index_check_response = requests.get(
-            f"{azure_search_endpoint}/indexes/{index_name}?api-version=2023-10-01-Preview",
-            headers=headers,
-        )
-
-        if index_check_response.status_code == 200:
-            print(
-                f"✅ Index '{index_name}' already exists. Uploading new document to blob storage."
-            )
-
-            # Simulate document upload to blob storage
-            print("Uploading document to blob storage...")
-            # Add your blob upload logic here
-
-            # Run the indexer
-            run_response = requests.post(
-                f"{azure_search_endpoint}/indexers/{indexer_name}/run?api-version=2023-10-01-Preview",
-                headers=headers,
-            )
-
-            if run_response.status_code == 202:
-                print("✅ Indexer started successfully (for new files only).")
-            else:
-                print("❌ Failed to run the indexer:", run_response.status_code)
-                print(run_response.text)
-        elif index_check_response.status_code == 404:
-            print(f"❌ Index '{index_name}' not found. Creating a new index.")
-
-            # Execute the full flow to create a new index
-            execute_full_flow(connection_string, container_name)
-        else:
-            print(
-                "❌ Failed to check index existence:", index_check_response.status_code
-            )
-            print(index_check_response.text)
-    except Exception as e:
-        print(
-            f"An error occurred while uploading the document or creating the index: {e}"
-        )
-
-
-if __name__ == "__main__":
-    # Example usage of the full flow
-    execute_full_flow(
-        connection_string="<your_connection_string>",
-        container_name="<your_container_name>",
-    )
-
-    # Example usage of uploading a new document
-    upload_new_document(
-        connection_string="<your_connection_string>",
-        container_name="<your_container_name>",
-        indexer_name="rag-indexer",
-    )
-
-    # Example usage of uploading or creating an index
-    upload_or_create_index(
-        connection_string="<your_connection_string>",
-        container_name="<your_container_name>",
-        index_name="rag-index",
-        indexer_name="rag-1757995320248-indexer",
-    )

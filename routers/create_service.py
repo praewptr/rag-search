@@ -36,6 +36,7 @@ class CreateSkillsetRequest(BaseModel):
 
 class CreateIndexRequest(BaseModel):
     name: str
+    analyzer_name: str
 
 
 class CreateIndexerRequest(BaseModel):
@@ -178,7 +179,31 @@ async def list_indexes():
         )
 
 
-@router.post("/create-skillset")
+@router.get("/list-datasources")
+async def list_datasources():
+    """List all available datasources from Azure Search."""
+    try:
+        response = requests.get(
+            f"{azure_search_endpoint}/datasources?api-version=2023-10-01-Preview",
+            headers=headers,
+        )
+        if response.status_code == 200:
+            datasources_data = response.json()
+            datasources = datasources_data.get("value", [])
+            return {"items": [ds["name"] for ds in datasources]}
+        else:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Failed to list datasources: {response.text}",
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while listing datasources: {str(e)}",
+        )
+
+
+@router.post("/skillset")
 async def create_skillset_endpoint(request: CreateSkillsetRequest):
     """Create a new Azure Search skillset."""
     try:
@@ -198,31 +223,27 @@ async def create_skillset_endpoint(request: CreateSkillsetRequest):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-@router.post("/create-index-pdf")
+@router.post("/index-pdf")
 async def create_index_endpoint(request: CreateIndexRequest):
     """Create a new Azure Search index."""
     try:
+        # Use custom fields/vector_search if provided, else backend defaults
+        fields = create_search_fields(name=request.name, analyzer_name="en.microsoft")
         vector_search = create_vector_search_config(name=request.name)
-        include_vector = vector_search is not None
-        fields = create_search_fields(name=request.name, include_vector=include_vector)
 
         create_index(name=request.name, fields=fields, vector_search=vector_search)
 
-        if include_vector:
-            message = f"Index '{request.name}' created successfully with vector search enabled."
-        else:
-            message = f"Index '{request.name}' created successfully (text search only - vector search requires Azure OpenAI configuration)."
-
+        message = f"Index '{request.name}' created successfully."
         return {
             "message": message,
             "status": "success",
-            "vector_search_enabled": include_vector,
+            "vector_search_enabled": bool(vector_search),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-@router.post("/create-indexer")
+@router.post("/indexer")
 async def create_indexer_endpoint(request: CreateIndexerRequest):
     """Create a new Azure Search indexer."""
     try:
@@ -262,7 +283,7 @@ async def create_indexer_endpoint(request: CreateIndexerRequest):
         )
 
 
-@router.post("/create-datasource")
+@router.post("/datasource")
 async def create_datasource_endpoint(request: CreateDataSourceRequest):
     """Create a new Azure Search data source."""
     try:

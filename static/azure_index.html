@@ -853,8 +853,53 @@
                     <div class="title-info">
                         <span class="title-badge">Document Title</span>
                     </div>
+                    <div class="document-actions">
+                        <button class="delete-btn" data-title="${escapeHtml(documentTitle)}" title="Delete all documents with this title">
+                            🗑️
+                        </button>
+                    </div>
                 </div>
             `).join('');
+            // Event delegation for delete by title
+            document.addEventListener('click', function (e) {
+                if (e.target && e.target.classList.contains('delete-btn') && e.target.hasAttribute('data-title')) {
+                    const title = e.target.getAttribute('data-title');
+                    deleteDocumentByTitle(title);
+                }
+            });
+            async function deleteDocumentByTitle(documentTitle) {
+                if (!selectedIndex) {
+                    showMessage('No index selected', 'error');
+                    return;
+                }
+                if (!documentTitle) {
+                    showMessage('No title provided', 'error');
+                    return;
+                }
+                if (!confirm(`Are you sure you want to delete ALL documents with title "${documentTitle}" from index "${selectedIndex}"? This action cannot be undone.`)) {
+                    return;
+                }
+                try {
+                    showLoading(true);
+                    const url = `/azure-index/delete-documents-by-title/?title=${encodeURIComponent(documentTitle)}`;
+                    const response = await fetch(url, { method: 'DELETE' });
+                    if (!response.ok) {
+                        let errorMsg = 'Delete failed.';
+                        try { const err = await response.json(); errorMsg = err.detail || errorMsg; } catch { }
+                        throw new Error(errorMsg);
+                    }
+                    const result = await response.json();
+                    showMessage(result.message, 'success');
+                    // Reload documents and stats after deletion
+                    await loadDocuments();
+                    await loadIndexStats();
+                } catch (error) {
+                    console.error('Error deleting documents by title:', error);
+                    showMessage('Failed to delete documents by title: ' + error.message, 'error');
+                } finally {
+                    showLoading(false);
+                }
+            }
         }
 
         function renderDocumentResults(results, title) {

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
 
 from config import (
@@ -42,42 +42,40 @@ async def download_document(filepath: str):
     )
 
 
-@router.post("/upload")
-async def upload_to_blob(
-    file: UploadFile = File(...),
-    overwrite: bool = False,
-    container_name: str = Query(None, description="Container name to upload to"),
+@router.post("/upload-server-doc")
+async def upload_server_doc(
+    filename: str = Query(..., description="Name of the file in the server folder"),
+    container_name: str = Query(..., description="Container name to upload to"),
+    target_filename: str = Query(None, description="Target name for upload (optional)"),
+    overwrite: bool = Query(False, description="Overwrite if file exists"),
 ):
+    """
+    Upload a file from the server folder to Azure Blob Storage.
+    """
+    DOCUMENTS_PATH = Path("C:/Users/PANTHIRA/mock_folder")
+    file_path = DOCUMENTS_PATH / filename
+    upload_name = target_filename if target_filename else filename
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(
+            status_code=404, detail=f"File '{filename}' not found in server folder."
+        )
+
+    blob_client = get_blob_client(upload_name, container_name)
+    if blob_client.exists() and not overwrite:
+        raise HTTPException(
+            status_code=409,
+            detail=f"File '{upload_name}' already exists in container '{container_name}'. Use overwrite=true to replace it.",
+        )
     try:
-        # Ensure the uploaded file is a PDF
-        if not file.filename.lower().endswith(".pdf"):
-            raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
-
-        # Use provided container or default
-        target_container = container_name or blob_container_client.container_name
-
-        # Get blob client
-        blob_client = get_blob_client(file.filename, target_container)
-
-        # Check if the file already exists
-        if blob_client.exists() and not overwrite:
-            raise HTTPException(
-                status_code=409,
-                detail=f"File '{file.filename}' already exists in container '{target_container}'. Use overwrite=true to replace it.",
-            )
-
-        # Upload file to blob
-        blob_client.upload_blob(file.file, overwrite=overwrite)
-
+        with open(file_path, "rb") as f:
+            blob_client.upload_blob(f, overwrite=overwrite)
         return {
-            "message": f"PDF file '{file.filename}' uploaded successfully to container '{target_container}'.",
-            "container": target_container,
+            "message": f"File '{upload_name}' uploaded successfully to container '{container_name}'.",
+            "container": container_name,
             "overwrite": overwrite,
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to upload PDF file: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
 
 
 @router.get("/list-files/{container_name}")
@@ -147,3 +145,26 @@ def delete_document(filename: str):
         return {"message": f"{filename} deleted successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/delete-file-from-blob")
+async def delete_doc_container(
+    filename: str = Query(..., description="Name of the file to delete"),
+    container_name: str = Query(None, description="Container name to upload to"),
+):
+    try:
+        # Get blob client
+        blob_client = get_blob_client(filename, container_name)
+        # Ensure the uploaded file is a PDF
+        if not blob_client.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"File '{filename}' does not exist in container '{container_name}'.",
+            )
+        blob_client.delete_blob()
+        return {
+            "message": f"File '{filename}' deleted successfully from container '{container_name}'.",
+            "container": container_name,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")

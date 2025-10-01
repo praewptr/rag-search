@@ -393,12 +393,11 @@
                     <div id="serverDocIcons"
                         style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:22px;margin-bottom:18px;">
                     </div>
-                    <div id="docPreview"
-                        style="display:none;position:absolute;z-index:1000;background:#fff;border:1px solid #ced4da;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);padding:16px;max-width:400px;max-height:250px;overflow:auto;font-family:monospace;white-space:pre-wrap;">
-                    </div>
+                    <!-- PDF preview removed -->
                     <div class="selected-file" id="selectedFile" style="display:none;">
                         <div class="file-info">
                             <div class="file-name" id="fileName"></div>
+                            <div id="renameInputs" style="margin-top:10px;"></div>
                         </div>
                         <button class="remove-file" id="removeFile">×</button>
                     </div>
@@ -466,7 +465,8 @@
         const uploadContainerSelect = document.getElementById('uploadContainerSelect');
 
         let currentFile = null;
-        let selectedServerDoc = null;
+        let selectedServerDocs = [];
+        let renameMap = {};
         let allFiles = [];
         let containers = [];
 
@@ -479,7 +479,6 @@
                     if (docs.length === 0) {
                         serverDocIcons.innerHTML = '<div style="color:#6c757d;">No documents found</div>';
                     } else {
-                        const docPreview = document.getElementById('docPreview');
                         docs.forEach(doc => {
                             const iconDiv = document.createElement('div');
                             iconDiv.style.display = 'flex';
@@ -494,57 +493,75 @@
                             iconDiv.style.transition = 'border 0.2s, box-shadow 0.2s';
                             iconDiv.style.marginBottom = '0';
                             iconDiv.title = doc;
-                            iconDiv.innerHTML = `<div style="font-size:2.2em;margin-bottom:8px;">📄</div><div style="font-size:0.98em;color:#495057;word-break:break-all;text-align:center;max-width:110px;">${doc}</div>`;
-                            // Download button
+                            iconDiv.innerHTML = `<div style="font-size:2.2em;margin-bottom:8px;">📄</div><div style="width:100%;text-align:center;"><span style="font-size:0.98em;color:#495057;word-break:break-all;white-space:pre-wrap;">${doc}</span></div>`;
+                            // Download button (SVG icon) below filename
+                            const filenameLine = iconDiv.querySelector('div:nth-child(2)');
                             const downloadBtn = document.createElement('button');
-                            downloadBtn.textContent = '⬇';
+                            downloadBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16V4M12 16L7 11M12 16L17 11" stroke="#138496" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="18" width="16" height="2" rx="1" fill="#138496"/></svg>`;
                             downloadBtn.title = 'Download';
-                            downloadBtn.style.marginTop = '7px';
                             downloadBtn.style.border = 'none';
                             downloadBtn.style.background = 'transparent';
                             downloadBtn.style.cursor = 'pointer';
-                            downloadBtn.style.fontSize = '1.2em';
-                            downloadBtn.style.color = '#138496';
+                            downloadBtn.style.padding = '0';
+                            downloadBtn.style.marginTop = '6px';
                             downloadBtn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
                                 const filepath = `C:/Users/PANTHIRA/mock_folder/${doc}`;
                                 window.open(`/upload-pdf/download-document?filepath=${encodeURIComponent(filepath)}`);
                             });
-                            iconDiv.appendChild(downloadBtn);
+                            // Place download icon below filename
+                            filenameLine.appendChild(document.createElement('br'));
+                            filenameLine.appendChild(downloadBtn);
                             iconDiv.addEventListener('click', () => {
-                                Array.from(serverDocIcons.children).forEach(child => {
-                                    child.style.border = '1.5px solid #e9ecef';
-                                    child.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
-                                });
-                                iconDiv.style.border = '2.5px solid #138496';
-                                iconDiv.style.boxShadow = '0 4px 16px rgba(19,132,150,0.12)';
-                                selectedServerDoc = doc;
-                                fileName.textContent = doc;
-                                selectedFile.style.display = 'flex';
-                                uploadBtn.disabled = false;
-                            });
-                            // Preview on hover
-                            iconDiv.addEventListener('mouseenter', async (e) => {
-                                docPreview.style.display = 'block';
-                                docPreview.textContent = 'Loading preview...';
-                                const filepath = `C:/Users/PANTHIRA/mock_folder/${doc}`;
-                                try {
-                                    const response = await fetch(`/upload-pdf/load-document?filepath=${encodeURIComponent(filepath)}`);
-                                    const result = await response.json();
-                                    if (response.ok && result.content) {
-                                        docPreview.textContent = result.content.slice(0, 1000) + (result.content.length > 1000 ? '\n... (truncated)' : '');
-                                    } else {
-                                        docPreview.textContent = 'Preview unavailable.';
-                                    }
-                                } catch {
-                                    docPreview.textContent = 'Preview unavailable.';
+                                // Toggle selection
+                                if (selectedServerDocs.includes(doc)) {
+                                    selectedServerDocs = selectedServerDocs.filter(d => d !== doc);
+                                    iconDiv.style.border = '1.5px solid #e9ecef';
+                                    iconDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                                } else {
+                                    selectedServerDocs.push(doc);
+                                    iconDiv.style.border = '2.5px solid #138496';
+                                    iconDiv.style.boxShadow = '0 4px 16px rgba(19,132,150,0.12)';
                                 }
-                                const rect = e.target.getBoundingClientRect();
-                                docPreview.style.left = (rect.right + 10 + window.scrollX) + 'px';
-                                docPreview.style.top = (rect.top + window.scrollY) + 'px';
-                            });
-                            iconDiv.addEventListener('mouseleave', () => {
-                                docPreview.style.display = 'none';
+                                // Show selected files
+                                if (selectedServerDocs.length > 0) {
+                                    fileName.textContent = selectedServerDocs.join(', ');
+                                    selectedFile.style.display = 'flex';
+                                    uploadBtn.disabled = false;
+                                    // Show rename inputs for each selected file
+                                    const renameInputs = document.getElementById('renameInputs');
+                                    renameInputs.innerHTML = '';
+                                    selectedServerDocs.forEach(doc => {
+                                        const wrapper = document.createElement('div');
+                                        wrapper.style.display = 'flex';
+                                        wrapper.style.alignItems = 'center';
+                                        wrapper.style.gap = '8px';
+                                        wrapper.style.marginBottom = '6px';
+                                        const label = document.createElement('label');
+                                        label.textContent = 'Rename:';
+                                        label.style.fontSize = '0.95em';
+                                        label.style.color = '#495057';
+                                        label.style.marginRight = '6px';
+                                        const input = document.createElement('input');
+                                        input.type = 'text';
+                                        input.value = renameMap[doc] || doc;
+                                        input.style.width = '180px';
+                                        input.style.padding = '4px 8px';
+                                        input.style.borderRadius = '5px';
+                                        input.style.border = '1px solid #ced4da';
+                                        input.addEventListener('input', (e) => {
+                                            renameMap[doc] = e.target.value;
+                                        });
+                                        wrapper.appendChild(label);
+                                        wrapper.appendChild(input);
+                                        renameInputs.appendChild(wrapper);
+                                    });
+                                } else {
+                                    fileName.textContent = '';
+                                    selectedFile.style.display = 'none';
+                                    uploadBtn.disabled = true;
+                                    document.getElementById('renameInputs').innerHTML = '';
+                                }
                             });
                             serverDocIcons.appendChild(iconDiv);
                         });
@@ -557,15 +574,20 @@
 
         // Remove file handler
         removeFile.addEventListener('click', () => {
-            selectedServerDoc = null;
+            selectedServerDocs = [];
+            renameMap = {};
             selectedFile.style.display = 'none';
             uploadBtn.disabled = true;
-            Array.from(serverDocIcons.children).forEach(child => child.style.border = '');
+            Array.from(serverDocIcons.children).forEach(child => {
+                child.style.border = '1.5px solid #e9ecef';
+                child.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+            });
+            document.getElementById('renameInputs').innerHTML = '';
         });
 
         // Upload button handler
         uploadBtn.addEventListener('click', async () => {
-            if (!selectedServerDoc) return;
+            if (!selectedServerDocs.length) return;
             const selectedContainer = uploadContainerSelect.value;
             if (!selectedContainer) {
                 showResult('Please select a container to upload to!', 'error');
@@ -574,27 +596,60 @@
             uploadBtn.disabled = true;
             progressBar.style.display = 'block';
             hideResult();
-            try {
-                const url = `/upload-pdf/upload-server-doc?filename=${encodeURIComponent(selectedServerDoc)}&container_name=${encodeURIComponent(selectedContainer)}`;
-                const response = await fetch(url, { method: 'POST' });
-                const result = await response.json();
-                if (response.ok) {
-                    showResult(`✅ ${result.message}`, 'success');
-                    selectedServerDoc = null;
-                    selectedFile.style.display = 'none';
-                    Array.from(serverDocIcons.children).forEach(child => child.style.border = '');
-                } else {
-                    showResult(`❌ ${result.detail}`, 'error');
+            let successCount = 0;
+            let failCount = 0;
+            let alreadyExistsFiles = [];
+            for (const doc of selectedServerDocs) {
+                const uploadName = renameMap[doc] && renameMap[doc].trim() ? renameMap[doc].trim() : doc;
+                try {
+                    let url = `/upload-pdf/upload-server-doc?filename=${encodeURIComponent(doc)}&container_name=${encodeURIComponent(selectedContainer)}`;
+                    url += `&target_filename=${encodeURIComponent(uploadName)}`;
+                    const response = await fetch(url, { method: 'POST' });
+                    let result = {};
+                    try { result = await response.json(); } catch { }
+                    if (response.ok) {
+                        successCount++;
+                    } else if (response.status === 409 && result.detail && result.detail.includes('already exists in container')) {
+                        alreadyExistsFiles.push(uploadName);
+                        failCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch {
+                    failCount++;
                 }
-            } catch (error) {
-                showResult(`❌ Upload failed: ${error.message}`, 'error');
-            } finally {
-                uploadBtn.disabled = true;
-                setTimeout(() => {
-                    progressBar.style.display = 'none';
-                    progressFill.style.width = '0%';
-                }, 1000);
             }
+            let msg = '';
+            if (successCount) {
+                msg += `✅ Uploaded ${successCount} file(s)`;
+            }
+            if (alreadyExistsFiles.length) {
+                msg += `${msg ? '<br>' : ''}⚠️ Already exists in container: ${alreadyExistsFiles.join(', ')}`;
+            }
+            if (failCount && (!alreadyExistsFiles.length || failCount > alreadyExistsFiles.length)) {
+                msg += `${msg ? '<br>' : ''}❌ Upload failed for ${failCount} file(s).`;
+            }
+            // If only alreadyExistsFiles, treat as warning not error
+            let resultType = 'success';
+            if (!successCount && alreadyExistsFiles.length && !failCount) {
+                resultType = 'warning';
+            } else if (!successCount && !alreadyExistsFiles.length && failCount) {
+                resultType = 'error';
+            }
+            showResult(msg, resultType);
+            selectedServerDocs = [];
+            renameMap = {};
+            selectedFile.style.display = 'none';
+            Array.from(serverDocIcons.children).forEach(child => {
+                child.style.border = '1.5px solid #e9ecef';
+                child.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+            });
+            uploadBtn.disabled = true;
+            document.getElementById('renameInputs').innerHTML = '';
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+            }, 1000);
         });
 
         // Refresh button handler
@@ -610,6 +665,7 @@
         });
 
         // No local file selection needed
+        // Multiple selection enabled for server documents
 
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
@@ -696,15 +752,76 @@
                     </div>
                 `;
             } else {
-                filesList.innerHTML = files.map(file => `
-                    <div class="file-item">
-                        <div class="file-icon">📄</div>
-                        <div class="file-info">
-                            <div class="file-name">${file}</div>
-                            <div class="file-size" style="font-size: 0.8em; color: #6c757d;">Container: ${selectedContainer || 'Default'}</div>
-                        </div>
-                    </div>
-                `).join('');
+                filesList.innerHTML = '';
+                files.forEach(file => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'file-item';
+
+                    const iconDiv = document.createElement('div');
+                    iconDiv.className = 'file-icon';
+                    iconDiv.textContent = '📄';
+
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'file-info';
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'file-name';
+                    nameDiv.textContent = file;
+                    const sizeDiv = document.createElement('div');
+                    sizeDiv.className = 'file-size';
+                    sizeDiv.style.fontSize = '0.8em';
+                    sizeDiv.style.color = '#6c757d';
+                    sizeDiv.textContent = `Container: ${selectedContainer || 'Default'}`;
+                    infoDiv.appendChild(nameDiv);
+                    infoDiv.appendChild(sizeDiv);
+
+                    // Delete button
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '🗑️';
+                    deleteBtn.title = 'Delete file';
+                    deleteBtn.style.marginLeft = '12px';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.background = 'transparent';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '1.2em';
+                    deleteBtn.style.color = '#dc3545';
+                    deleteBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        if (!selectedContainer) {
+                            showResult('❌ No container selected. Cannot delete file.', 'error');
+                            return;
+                        }
+                        if (!confirm(`Delete file '${file}' from container '${selectedContainer}'?`)) return;
+                        deleteBtn.disabled = true;
+                        deleteBtn.textContent = '⏳';
+                        try {
+                            const url = `/upload-pdf/delete-file-from-blob?filename=${encodeURIComponent(file)}&container_name=${encodeURIComponent(selectedContainer)}`;
+                            const response = await fetch(url, { method: 'DELETE' });
+                            let result = {};
+                            try { result = await response.json(); } catch { }
+                            if (response.ok) {
+                                showResult(`🗑️ ${result.message || 'File deleted.'}`, 'success');
+                                itemDiv.remove();
+                            } else if (response.status === 404) {
+                                showResult(`❌ File not found in container.`, 'error');
+                                deleteBtn.disabled = false;
+                                deleteBtn.textContent = '🗑️';
+                            } else {
+                                showResult(`❌ ${result.detail || 'Delete failed.'}`, 'error');
+                                deleteBtn.disabled = false;
+                                deleteBtn.textContent = '🗑️';
+                            }
+                        } catch (error) {
+                            showResult(`❌ Delete failed: ${error.message}`, 'error');
+                            deleteBtn.disabled = false;
+                            deleteBtn.textContent = '🗑️';
+                        }
+                    });
+
+                    itemDiv.appendChild(iconDiv);
+                    itemDiv.appendChild(infoDiv);
+                    itemDiv.appendChild(deleteBtn);
+                    filesList.appendChild(itemDiv);
+                });
             }
         }
 
