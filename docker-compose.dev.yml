@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+
+  rag-search-dev:
+
+    build:
+
+      context: .
+
+      dockerfile: Dockerfile.minimal
+
+    ports:
+
+      - "5099:5099"
+
+    environment:
+
+      # Azure OpenAI Configuration
+
+      - AZURE_OAI_ENDPOINT=${AZURE_OAI_ENDPOINT}
+
+      - AZURE_OAI_KEY=${AZURE_OAI_KEY}
+
+      - AZURE_OAI_DEPLOYMENT=${AZURE_OAI_DEPLOYMENT}
+
+      # Azure Search Configuration
+
+      - AZURE_SEARCH_ENDPOINT=${AZURE_SEARCH_ENDPOINT}
+
+      - AZURE_SEARCH_KEY=${AZURE_SEARCH_KEY}
+
+      - AZURE_SEARCH_INDEX_DOC=${AZURE_SEARCH_INDEX_DOC}
+
+      - AZURE_SEARCH_INDEX_TXT=${AZURE_SEARCH_INDEX_TXT}
+
+      # Azure Embedding Configuration
+
+      - AZURE_EMB_OAI_KEY=${AZURE_EMB_OAI_KEY}
+
+      - AZURE_EMB_OAI_DEPLOYMENT=${AZURE_EMB_OAI_DEPLOYMENT}
+
+      - AZURE_EMB_OAI_ENDPOINT=${AZURE_EMB_OAI_ENDPOINT}
+
+      # Azure Document Intelligence
+
+      - AZURE_DOC_INT_KEY=${AZURE_DOC_INT_KEY}
+
+      - AZURE_DOC_INT_ENDPOINT=${AZURE_DOC_INT_ENDPOINT}
+
+      # API Configuration
+
+      - API_URL=${API_URL}
+
+      # Logging Configuration
+
+      - ENABLE_LOGGING=${ENABLE_LOGGING}
+
+      - LOG_LEVEL=${LOG_LEVEL}
+
+      # Azure Blob Storage Configuration
+
+      - AZURE_STORAGE_ACCOUNT_NAME=${AZURE_STORAGE_ACCOUNT_NAME}
+
+      - AZURE_STORAGE_ACCOUNT_KEY=${AZURE_STORAGE_ACCOUNT_KEY}
+
+      - AZURE_STORAGE_CONTAINER_NAME=${AZURE_STORAGE_CONTAINER_NAME}
+
+      - AZURE_STORAGE_CONNECTION_STR=${AZURE_STORAGE_CONNECTION_STR}
+
+      # Azure AI Services Configuration
+
+      - AZURE_AI_SERVICE_ENDPOINT=${AZURE_AI_SERVICE_ENDPOINT}
+
+      - AZURE_AI_SERVICE_KEY=${AZURE_AI_SERVICE_KEY}
+
+      # Oracle Database Configuration
+
+      - ORACLE_DB_USER=${ORACLE_DB_USER}
+
+      - ORACLE_DB_PASSWORD=${ORACLE_DB_PASSWORD}
+
+      - ORACLE_DB_HOST=${ORACLE_DB_HOST}
+
+      - ORACLE_DB_PORT=${ORACLE_DB_PORT}
+
+      - ORACLE_DB_SERVICE_NAME=${ORACLE_DB_SERVICE_NAME}
+
+      # Python Path
+
+      - PYTHONPATH=/app
+
+    volumes:
+
+      - .:/app
+
+      - ./logs:/app/logs
+
+    restart: unless-stopped
+
+    command: [ "python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5099", "--reload" ]
+
+networks:
+
+  default:
+
+    name: rag-search-dev-network

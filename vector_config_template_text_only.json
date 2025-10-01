@@ -1,0 +1,33 @@
+{
+    "algorithms": [
+        {
+            "name": "__NAME__-algorithm",
+            "kind": "hnsw",
+            "hnswParameters": {
+                "metric": "cosine",
+                "m": 4,
+                "efConstruction": 400,
+                "efSearch": 500
+            }
+        }
+    ],
+    "profiles": [
+        {
+            "name": "__NAME__-azureOpenAi-text-profile",
+            "algorithm": "__NAME__-algorithm",
+            "vectorizer": "__NAME__-azureOpenAi-text-vectorizer"
+        }
+    ],
+    "vectorizers": [
+        {
+            "name": "__NAME__-azureOpenAi-text-vectorizer",
+            "kind": "azureOpenAI",
+            "azureOpenAIParameters": {
+                "resourceUri": "__RESOURCE_URI__",
+                "deploymentid": "__DEPLOYMENT_ID__",
+                "apiKey": "__API_KEY__",
+                "modelName": "__MODEL_NAME__"
+            }
+        }
+    ]
+}

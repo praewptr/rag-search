@@ -1,0 +1,30 @@
+# Minimal Docker build for RAG PDF Question Answering System
+FROM python:3.11-slim
+# Set working directory
+WORKDIR /app
+# Set environment variables for Python optimization
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+# Install minimal system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+# Copy requirements first for better Docker layer caching
+COPY requirements.txt .
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+# Copy application source code
+COPY . .
+# Create necessary directories for RAG PDF QA system
+RUN mkdir -p uploads documents logs static
+# Expose port for FastAPI application
+EXPOSE 5099
+# Health check endpoint for RAG PDF QA System
+HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:5099/ || exit 1
+# Run FastAPI application with uvicorn
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5099"]
