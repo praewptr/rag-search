@@ -27,6 +27,7 @@ azure_storage_account_key = os.getenv("AZURE_STORAGE_ACCOUNT_KEY")
 azure_storage_container_name = os.getenv("AZURE_STORAGE_CONTAINER_NAME")
 azure_storage_connection_str = os.getenv("AZURE_STORAGE_CONNECTION_STR")
 
+azure_ai_service_endpoint = os.getenv("AZURE_AI_SERVICE_ENDPOINT")
 azure_ai_service_key = os.getenv("AZURE_AI_SERVICE_KEY")
 
 # Oracle Database Configuration

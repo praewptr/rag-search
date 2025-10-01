@@ -3,60 +3,18 @@
     "description": "Skillset to chunk documents and generate embeddings",
     "skills": [
         {
-            "@odata.type": "#Microsoft.Skills.Vision.OcrSkill",
-            "context": "/document/normalized_images/*",
-            "lineEnding": "Space",
-            "defaultLanguageCode": "en",
-            "detectOrientation": true,
-            "inputs": [
-                {
-                    "name": "image",
-                    "source": "/document/normalized_images/*"
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "text",
-                    "targetName": "text"
-                }
-            ]
-        },
-        {
-            "@odata.type": "#Microsoft.Skills.Text.MergeSkill",
-            "context": "/document",
-            "insertPreTag": " ",
-            "insertPostTag": " ",
-            "inputs": [
-                {
-                    "name": "text",
-                    "source": "/document/content"
-                },
-                {
-                    "name": "itemsToInsert",
-                    "source": "/document/normalized_images/*/text"
-                },
-                {
-                    "name": "offsets",
-                    "source": "/document/normalized_images/*/contentOffset"
-                }
-            ],
-            "outputs": [
-                {
-                    "name": "mergedText",
-                    "targetName": "mergedText"
-                }
-            ]
-        },
-        {
             "@odata.type": "#Microsoft.Skills.Text.SplitSkill",
+            "name": "#1",
+            "description": "Split skill to chunk document",
             "context": "/document",
+            "defaultLanguageCode": "en",
             "textSplitMode": "pages",
             "maximumPageLength": 2000,
             "pageOverlapLength": 500,
             "inputs": [
                 {
                     "name": "text",
-                    "source": "/document/mergedText"
+                    "source": "/document/content"
                 }
             ],
             "outputs": [
@@ -68,11 +26,11 @@
         },
         {
             "@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill",
+            "name": "#2",
             "context": "/document/pages/*",
             "resourceUri": "__RESOURCE_URI__",
             "apiKey": "__API_KEY__",
             "deploymentId": "__DEPLOYMENT_ID__",
-            "modelName": "text-embedding-3-large",
             "inputs": [
                 {
                     "name": "text",
@@ -85,11 +43,77 @@
                     "targetName": "text_vector"
                 }
             ]
+        },
+        {
+            "@odata.type": "#Microsoft.Skills.Vision.VectorizeSkill",
+            "name": "#3",
+            "description": "An AI Services Vision vectorization skill for images",
+            "context": "/document/normalized_images/*",
+            "modelVersion": "2023-04-15",
+            "inputs": [
+                {
+                    "name": "image",
+                    "source": "/document/normalized_images/*",
+                    "inputs": []
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "vector",
+                    "targetName": "image_vector"
+                }
+            ]
         }
     ],
     "cognitiveServices": {
         "@odata.type": "#Microsoft.Azure.Search.CognitiveServicesByKey",
         "description": "AI Services",
         "key": "__COGNITIVE_KEY__"
+    },
+    "indexProjections": {
+        "selectors": [
+            {
+                "targetIndexName": "__INDEX_NAME__",
+                "parentKeyFieldName": "text_parent_id",
+                "sourceContext": "/document/pages/*",
+                "mappings": [
+                    {
+                        "name": "text_vector",
+                        "source": "/document/pages/*/text_vector",
+                        "inputs": []
+                    },
+                    {
+                        "name": "chunk",
+                        "source": "/document/pages/*",
+                        "inputs": []
+                    },
+                    {
+                        "name": "title",
+                        "source": "/document/metadata_storage_name",
+                        "inputs": []
+                    }
+                ]
+            },
+            {
+                "targetIndexName": "__INDEX_NAME__",
+                "parentKeyFieldName": "image_parent_id",
+                "sourceContext": "/document/normalized_images/*",
+                "mappings": [
+                    {
+                        "name": "image_vector",
+                        "source": "/document/normalized_images/*/image_vector",
+                        "inputs": []
+                    },
+                    {
+                        "name": "title",
+                        "source": "/document/metadata_storage_name",
+                        "inputs": []
+                    }
+                ]
+            }
+        ],
+        "parameters": {
+            "projectionMode": "skipIndexingParentDocuments"
+        }
     }
 }

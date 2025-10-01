@@ -9,6 +9,7 @@ from azure.search.documents.indexes.models import (
 )
 
 from config import (
+    azure_ai_service_endpoint,
     azure_ai_service_key,
     azure_emb_oai_deployment,
     azure_emb_oai_endpoint,
@@ -25,7 +26,9 @@ headers = {
 }
 
 
-def create_search_fields(name: str, analyzer_name: str) -> list:
+def create_search_fields(
+    name: str, analyzer_name: str, include_vision: bool = True
+) -> list:
     """
     Define the fields for the Azure Search index.
 
@@ -38,7 +41,7 @@ def create_search_fields(name: str, analyzer_name: str) -> list:
         analyzer_name = "th"
         analyzer_name = "th.lucene"
 
-    return [
+    fields = [
         SearchField(
             name="chunk_id",
             type=SearchFieldDataType.String,
@@ -51,7 +54,17 @@ def create_search_fields(name: str, analyzer_name: str) -> list:
             analyzer_name="keyword",
         ),
         SearchField(
-            name="parent_id",
+            name="text_parent_id",
+            type=SearchFieldDataType.String,
+            searchable=False,
+            filterable=True,
+            retrievable=True,
+            sortable=False,
+            facetable=False,
+            key=False,
+        ),
+        SearchField(
+            name="image_parent_id",
             type=SearchFieldDataType.String,
             searchable=False,
             filterable=True,
@@ -78,7 +91,7 @@ def create_search_fields(name: str, analyzer_name: str) -> list:
             retrievable=True,
             sortable=False,
             facetable=False,
-            analyzer_name=analyzer_name,
+            analyzer_name="en.lucene",
         ),
         SearchField(
             name="text_vector",
@@ -87,24 +100,32 @@ def create_search_fields(name: str, analyzer_name: str) -> list:
             searchable=True,
             retrievable=True,
             vector_search_dimensions=3072,
-            vector_search_configuration=f"vector-config-{name}",
-            vector_search_profile_name=f"vector-profile-{name}",
-        ),
-        SearchField(
-            name="image_vector",
-            type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
-            filterable=False,
-            searchable=True,
-            retrievable=True,
-            vector_search_dimensions=1024,
-            vector_search_configuration=f"vector-config-{name}",
-            vector_search_profile_name=f"vector-profile-{name}",
+            vector_search_profile_name=f"{name}-azureOpenAi-text-profile",
         ),
     ]
 
+    # Only add image vector field if vision is enabled
+    if include_vision:
+        fields.append(
+            SearchField(
+                name="image_vector",
+                type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+                filterable=False,
+                searchable=True,
+                retrievable=True,
+                vector_search_dimensions=1024,
+                vector_search_profile_name=f"{name}-aiServicesVision-image-profile",
+            )
+        )
 
-def create_vector_search_config(name: str) -> dict:
-    config_path = Path("vector_config_template.json")
+    return fields
+
+
+def create_vector_search_config(name: str, include_vision: bool = False) -> dict:
+    if include_vision:
+        config_path = Path("vector_config_template.json")
+    else:
+        config_path = Path("vector_config_template_text_only.json")
 
     with open(config_path, "r", encoding="utf-8") as f:
         template = json.load(f)
@@ -117,6 +138,11 @@ def create_vector_search_config(name: str) -> dict:
     config_str = config_str.replace("__DEPLOYMENT_ID__", azure_emb_oai_deployment)
     config_str = config_str.replace("__API_KEY__", azure_emb_oai_key)
     config_str = config_str.replace("__MODEL_NAME__", azure_emb_oai_deployment)
+    if include_vision:
+        config_str = config_str.replace("__COGNITIVE_KEY__", azure_ai_service_key)
+        config_str = config_str.replace(
+            "__AI_SERVICE_RESOURCE_URI__", azure_ai_service_endpoint
+        )
 
     return json.loads(config_str)
 
@@ -142,8 +168,10 @@ def create_datasource(name: str, container_name: str):
         return None
 
 
-def create_skillset(name: str):
-    template_path = Path("skillset_template.json")
+def create_skillset(name: str, target_index_name: str = None):
+    """Create a skillset with optional vision capabilities."""
+
+    template_path = Path("skillset_template_text_only.json")
 
     with open(template_path, "r", encoding="utf-8") as f:
         template = f.read()
@@ -155,17 +183,33 @@ def create_skillset(name: str):
         .replace("__API_KEY__", azure_emb_oai_key)
         .replace("__DEPLOYMENT_ID__", azure_emb_oai_deployment)
         .replace("__COGNITIVE_KEY__", azure_ai_service_key)
+        .replace("__COGNITIVE_ENDPOINT__", azure_ai_service_endpoint)
     )
 
-    skillset_payload = json.loads(config_str)
+    # Replace index name if provided
+    if target_index_name:
+        config_str = config_str.replace("__INDEX_NAME__", target_index_name)
 
-    response = requests.post(
-        f"{azure_search_endpoint}/skillsets?api-version=2024-07-01",
-        headers=headers,
-        json=skillset_payload,
-    )
+    try:
+        skillset_payload = json.loads(config_str)
 
-    return response
+        response = requests.post(
+            f"{azure_search_endpoint}/skillsets?api-version=2024-03-01-preview",
+            headers=headers,
+            json=skillset_payload,
+        )
+
+        if response.status_code not in [200, 201]:
+            print(f"Error creating skillset: {response.status_code} - {response.text}")
+
+        return response
+
+    except json.JSONDecodeError as e:
+        print(f"JSON parsing error in skillset template: {e}")
+        return None
+    except Exception as e:
+        print(f"Error creating skillset: {e}")
+        return None
 
 
 def create_index(name: str, fields: list, vector_search: dict):
@@ -197,11 +241,14 @@ def create_indexer(
             }
         },
         "fieldMappings": [
-            {"sourceFieldName": "metadata_storage_name", "targetFieldName": "title"},
+            {
+                "sourceFieldName": "metadata_storage_name",
+                "targetFieldName": "title",
+            }
         ],
     }
     response = requests.post(
-        f"{azure_search_endpoint}/indexers?api-version=2024-07-01",
+        f"{azure_search_endpoint}/indexers?api-version=2023-10-01-Preview",
         json=payload,
         headers=headers,
     )

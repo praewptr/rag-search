@@ -31,6 +31,7 @@ class CreateDataSourceRequest(BaseModel):
 
 class CreateSkillsetRequest(BaseModel):
     name: str
+    target_index_name: str = None
     description: str = "Document processing skillset"
 
 
@@ -207,7 +208,10 @@ async def list_datasources():
 async def create_skillset_endpoint(request: CreateSkillsetRequest):
     """Create a new Azure Search skillset."""
     try:
-        response = create_skillset(name=request.name)
+        response = create_skillset(
+            name=request.name,
+            target_index_name=request.target_index_name,
+        )
 
         if response.status_code in [200, 201]:
             return {
@@ -228,8 +232,12 @@ async def create_index_endpoint(request: CreateIndexRequest):
     """Create a new Azure Search index."""
     try:
         # Use custom fields/vector_search if provided, else backend defaults
-        fields = create_search_fields(name=request.name, analyzer_name="en.microsoft")
-        vector_search = create_vector_search_config(name=request.name)
+        fields = create_search_fields(
+            name=request.name, analyzer_name=request.analyzer_name, include_vision=True
+        )
+        vector_search = create_vector_search_config(
+            name=request.name, include_vision=True
+        )
 
         create_index(name=request.name, fields=fields, vector_search=vector_search)
 

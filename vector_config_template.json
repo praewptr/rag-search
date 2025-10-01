@@ -1,7 +1,7 @@
 {
     "algorithms": [
         {
-            "name": "vector-config-__NAME__",
+            "name": "__NAME__-algorithm",
             "kind": "hnsw",
             "hnswParameters": {
                 "metric": "cosine",
@@ -13,20 +13,34 @@
     ],
     "profiles": [
         {
-            "name": "vector-profile-__NAME__",
-            "algorithm": "vector-config-__NAME__",
-            "vectorizer": "vectorizer-__NAME__"
+            "name": "__NAME__-azureOpenAi-text-profile",
+            "algorithm": "__NAME__-algorithm",
+            "vectorizer": "__NAME__-azureOpenAi-text-vectorizer"
+        },
+        {
+            "name": "__NAME__-aiServicesVision-image-profile",
+            "algorithm": "__NAME__-algorithm",
+            "vectorizer": "__NAME__-aiServicesVision-image-vectorizer"
         }
     ],
     "vectorizers": [
         {
-            "name": "vectorizer-__NAME__",
+            "name": "__NAME__-azureOpenAi-text-vectorizer",
             "kind": "azureOpenAI",
             "azureOpenAIParameters": {
                 "resourceUri": "__RESOURCE_URI__",
                 "deploymentid": "__DEPLOYMENT_ID__",
                 "apiKey": "__API_KEY__",
                 "modelName": "__MODEL_NAME__"
+            }
+        },
+        {
+            "name": "__NAME__-aiServicesVision-image-vectorizer",
+            "kind": "aiServicesVision",
+            "aiServicesVisionParameters": {
+                "resourceUri": "__AI_SERVICE_RESOURCE_URI__",
+                "apiKey": "__COGNITIVE_KEY__",
+                "modelVersion": "2023-04-15"
             }
         }
     ]
