@@ -1,13 +1,16 @@
 import json
 
 from openai import AzureOpenAI
-
+from azure.search.documents.models import VectorizedQuery
 from config import (
     azure_oai_deployment,
     azure_search_endpoint,
     azure_search_index_doc,
     azure_search_key,
+    azure_search_index_txt
 )
+from services.client import embeddings,search_client_text,search_client_pdf
+import asyncio
 
 extension_config = dict(
     dataSources=[
@@ -16,14 +19,29 @@ extension_config = dict(
             "parameters": {
                 "endpoint": azure_search_endpoint,
                 "key": azure_search_key,
-                "indexName": azure_search_index_doc,
+                "indexName": azure_search_index_doc,  
+            },
+            "fields_mapping": {
+                "content_field": "chunk",
+                "filepath_field": "text_parent_id",
+                "title_field": "title",
+                "url_field": "",
+                "vector_field": "text_vector",
+            },
+        },
+        {
+            "type": "AzureCognitiveSearch",
+            "parameters": {
+                "endpoint": azure_search_endpoint,
+                "key": azure_search_key,
+                "indexName": azure_search_index_txt,  
             },
             "fields_mapping": {
                 "content_field": "content",
-                "filepath_field": "filepath",
+                "filepath_field": "source",
                 "title_field": "title",
-                "url_field": "url",
-                "vector_field": "contentVector",
+                "url_field": "",
+                "vector_field": "text_vector",
             },
         }
     ]
@@ -33,6 +51,7 @@ extension_config = dict(
 def get_response(
     text: str,
     client: AzureOpenAI,
+    context: str = "",
 ):
     response = client.chat.completions.create(
         model=azure_oai_deployment,
@@ -53,9 +72,8 @@ def get_response(
                     "- Be comprehensive but concise\n"
                     "- Professional yet friendly tone\n\n"
                     "**Strict Rules:**\n"
-                    "- ⚠️ ONLY use information from provided documents\n"
-                    "- ⚠️ NO citation markers [doc1], [source], URLs\n"
-                    "- ⚠️ NO assumptions beyond document content\n\n"
+                    "- ONLY use information from provided documents\n"
+                    "- NO assumptions beyond document content\n\n"
                     "**If insufficient info:**\n"
                     "- Thai: 'ขออภัย ไม่มีข้อมูลเพียงพอในเอกสารสำหรับคำถามนี้'\n"
                     "- English: 'I don't have sufficient information in the documents to answer this question.'\n"
@@ -67,7 +85,7 @@ def get_response(
             Answer this question using ONLY the provided documents.
 
             **IMPORTANT: Respond in the same language as the question.**
-
+            Context : {context}
             Question: {text}
 
             Provide a detailed answer with clear formatting.
@@ -91,3 +109,76 @@ def get_response(
         pass
 
     return answer, citations
+
+def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
+    """Gets a final answer from the LLM based on the query and retrieved context."""
+    system_prompt = """
+    You are a helpful AI assistant. Answer the user's question based ONLY on the provided information.
+    If the information is not in the context, say that you cannot find an answer in the provided documents.
+    Be concise and professional. Do not cite the source file for the information you use.
+    """
+    
+    user_prompt = f"""
+    CONTEXT:
+    ---
+    {context}
+    ---
+    QUESTION: {query}
+    
+    ANSWER:
+    """
+    
+    try:
+        response = openai_client.chat.completions.create(
+            model=azure_oai_deployment,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.1,
+            max_tokens=500,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Error calling LLM: {e}")
+        return "Sorry, I encountered an error while generating the answer."
+
+
+
+def rag_pipeline(question:str):
+    question_emb = embeddings.embed_query(question)
+    vector_query_text = VectorizedQuery(vector=question_emb, k_nearest_neighbors=3, fields="text_vector")
+    vector_query_pdf = VectorizedQuery(vector=question_emb, k_nearest_neighbors=3, fields="text_vector")
+    combined_results = []
+    SCORE_THRESHOLD = 0.55
+    try:
+        # Run the search on the text index and wait for it to complete
+        text_results = search_client_text.search(search_text=None, vector_queries=[vector_query_text])
+        
+        # Process results from the text index using a standard 'for' loop
+        for result in text_results:
+            combined_results.append({
+                "score": result['@search.score'],
+                "content": result['content']
+            })
+            
+        # Now, run the search on the PDF index and wait for it to complete
+        pdf_results = search_client_pdf.search(search_text=None, vector_queries=[vector_query_pdf])
+        
+        # Process results from the PDF index
+        for result in pdf_results:
+            combined_results.append({
+                "score": result['@search.score'],
+                "content": result['chunk']
+            })
+            
+        sorted_results = sorted(combined_results, key=lambda x: x['score'], reverse=True)
+        top_results = [res for res in sorted_results if res['score'] >= SCORE_THRESHOLD][:5]
+        context_for_llm = ""
+        for i, result in enumerate(top_results):
+            context_for_llm += f"Content: {result['content']}"
+
+    except Exception as e:
+        print(f"Error during search: {e}")
+
+    return context_for_llm
