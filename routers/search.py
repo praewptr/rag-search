@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 
 from models.rag_search import QuestionRequest
 from services.client import azure_openai_client
-from services.langchain_flow import generate_answer
 from services.qa_engine import get_response,rag_pipeline,get_llm_answer
 from services.utils import remove_citation_markers
 
@@ -41,15 +40,23 @@ def ask_question(request: QuestionRequest):
 @router.post("/aisearch")
 def langchain_search(request: QuestionRequest):
     try:
-        # answer = generate_answer(request.text)
-        answer = rag_pipeline(request.text)
-        if answer:
-            final_answer = get_llm_answer(request.text, answer, azure_openai_client)
-            cleaned_answer = remove_citation_markers(final_answer)
-            return {"text": cleaned_answer}
+        # Get context from RAG pipeline
+        context = rag_pipeline(request.text)
         
-        else:
+        # If no context found, return empty list
+        if not context:
             return {"text": []}
+        
+        # Get LLM answer based on context
+        final_answer = get_llm_answer(request.text, context, azure_openai_client)
+        
+        # If LLM couldn't generate an answer, return empty list
+        if not final_answer:
+            return {"text": []}
+            
+        # Clean and return the answer
+        cleaned_answer = remove_citation_markers(final_answer)
+        return {"text": cleaned_answer}
 
     except Exception as e:
         raise HTTPException(

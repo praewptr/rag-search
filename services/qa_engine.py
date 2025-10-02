@@ -112,9 +112,14 @@ def get_response(
 
 def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
     """Gets a final answer from the LLM based on the query and retrieved context."""
+    
+    # If no context or empty context, return None to indicate no answer
+    if not context or context.strip() == "":
+        return None
+        
     system_prompt = """
     You are a helpful AI assistant. Answer the user's question based ONLY on the provided information.
-    If the information is not in the context, say that you cannot find an answer in the provided documents.
+    If the information is not sufficient to answer the question, respond with "NO_ANSWER_FOUND".
     Be concise and professional. Do not cite the source file for the information you use.
     """
     
@@ -138,10 +143,18 @@ def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
             temperature=0.1,
             max_tokens=500,
         )
-        return response.choices[0].message.content
+        
+        answer = response.choices[0].message.content.strip()
+        
+        # Check if LLM indicates no answer found
+        if "NO_ANSWER_FOUND" in answer or not answer:
+            return None
+            
+        return answer
+        
     except Exception as e:
         print(f"Error calling LLM: {e}")
-        return "Sorry, I encountered an error while generating the answer."
+        return None
 
 
 
@@ -174,11 +187,17 @@ def rag_pipeline(question:str):
             
         sorted_results = sorted(combined_results, key=lambda x: x['score'], reverse=True)
         top_results = [res for res in sorted_results if res['score'] >= SCORE_THRESHOLD][:5]
+        
+        # If no results meet the threshold, return None
+        if not top_results:
+            return None
+            
         context_for_llm = ""
         for i, result in enumerate(top_results):
-            context_for_llm += f"Content: {result['content']}"
+            context_for_llm += f"Content: {result['content']}\n\n"
 
     except Exception as e:
         print(f"Error during search: {e}")
+        return None
 
     return context_for_llm
