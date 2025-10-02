@@ -290,12 +290,12 @@
 
             try {
                 // Call the API
-                const response = await fetch('/search/test', {
+                const response = await fetch('/search/aisearch', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ question: userMessage })
+                    body: JSON.stringify({ text: userMessage })
                 });
 
                 if (!response.ok) {
@@ -315,7 +315,7 @@
                 answerElement.className = 'answer';
 
                 // Render Markdown content instead of plain text
-                const renderedAnswer = renderMarkdown(data.answer);
+                const renderedAnswer = renderMarkdown(data.text);
                 answerElement.innerHTML = renderedAnswer;
                 botMessageElement.appendChild(answerElement);
 
