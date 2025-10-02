@@ -6,6 +6,9 @@ from langchain_community.retrievers.azure_ai_search import AzureAISearchRetrieve
 from langchain_openai import AzureChatOpenAI
 from langchain_openai.embeddings import AzureOpenAIEmbeddings
 from openai import AzureOpenAI
+from langchain_community.vectorstores import AzureSearch
+
+
 
 from config import (
     azure_emb_oai_deployment,
@@ -28,13 +31,17 @@ from config import (
 
 
 # --------- Initialize Azure OpenAI client---------#
+# azure_openai_client = AzureOpenAI(
+#     base_url=f"{azure_oai_endpoint}/openai/deployments/{azure_oai_deployment}/extensions",
+#     api_key=azure_oai_key,
+#     api_version="2023-09-01-preview",
+# )
+
 azure_openai_client = AzureOpenAI(
-    base_url=f"{azure_oai_endpoint}/openai/deployments/{azure_oai_deployment}/extensions",
     api_key=azure_oai_key,
-    api_version="2023-09-01-preview",
+    api_version="2024-02-01", # Use a more recent, stable API version
+    azure_endpoint=azure_oai_endpoint
 )
-
-
 # ------------Embedding Client-----------------#
 embeddings = AzureOpenAIEmbeddings(
     deployment=azure_emb_oai_deployment,
@@ -75,7 +82,6 @@ retriever_pdf = AzureAISearchRetriever(
         ".search.windows.net", ""
     ),
     api_key=azure_search_key,
-    api_version="2023-10-01-Preview",
 )
 
 
@@ -88,8 +94,8 @@ retriever_text = AzureAISearchRetriever(
         ".search.windows.net", ""
     ),
     api_key=azure_search_key,
-    api_version="2023-10-01-Preview",
 )
+
 
 
 # ----------------Search Index Client-----------------#
@@ -105,3 +111,13 @@ blob_service_client = BlobServiceClient.from_connection_string(
 blob_container_client = blob_service_client.get_container_client(
     azure_storage_container_name
 )
+
+
+
+
+
+vector_store: AzureSearch = AzureSearch(
+    embedding_function=embeddings.embed_query,
+    azure_search_endpoint=azure_search_endpoint,
+    azure_search_key=azure_search_key,
+    index_name=azure_search_index_txt)
