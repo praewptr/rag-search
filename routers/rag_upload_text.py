@@ -29,10 +29,39 @@ async def get_documents():
         )
 
 
+# @router.get("/text", response_model=DocumentResponse)
+# async def get():
+#     return {
+#         "value": [
+#             {
+#                 "ID": 1,
+#                 "content": "เนื้อหาของเอกสารที่เก็บใน Oracle databaseเนื้อหาของเอกสารที่เก็บใน Oracle databaseเนื้อหาของเอกสารที่เก็บใน Oracle databaseเนื้อหาของเอกสารที่เก็บใน Oracle databaseเนื้อหาของเอกสารที่เก็บใน Oracle database",
+#                 "timestamp": "2024-01-15T10:30:00Z",
+#                 "source": "admin",
+#                 "added": 0,
+#             },
+#             {
+#                 "ID": 2,
+#                 "content": "เนื้อหาของเอกสารที่ 2",
+#                 "timestamp": "2024-01-15T11:45:00Z",
+#                 "source": "user1",
+#                 "added": 1,
+#             },
+#             {
+#                 "ID": 3,
+#                 "content": "This is a sample document content in English.",
+#                 "timestamp": "2024-01-16T09:15:00Z",
+#                 "source": "user2",
+#                 "added": 0,
+#             },
+#         ]
+#     }
+
+
 @router.delete("/text/bulk")
 async def delete_multiple_documents(doc_ids: list[int]):
     """
-    Delete multiple documents by their IDs from the Oracle database.
+    w,j    Delete multiple documents by their IDs from the Oracle database.
     """
     try:
         deleted_count = 0
@@ -238,3 +267,41 @@ def get_text_index():
             all_contents.append(content)
 
     return {"documents": all_contents}
+
+
+@router.post("/mark-uploaded")
+async def mark_documents_as_uploaded(request: dict):
+    """
+    Mark documents as uploaded to Azure Search (set ADDED = 1)
+    """
+    try:
+        document_ids = request.get("document_ids", [])
+        if not document_ids:
+            raise HTTPException(status_code=400, detail="No document IDs provided")
+
+        updated_count = 0
+        failed_count = 0
+
+        for doc_id in document_ids:
+            try:
+                # Update ADDED column to 1 for uploaded document
+                success = oracle_service.mark_document_uploaded(doc_id)
+                if success:
+                    updated_count += 1
+                else:
+                    failed_count += 1
+            except Exception as e:
+                print(f"Error updating document {doc_id}: {e}")
+                failed_count += 1
+
+        return {
+            "message": f"Updated {updated_count} documents, {failed_count} failed",
+            "updated_count": updated_count,
+            "failed_count": failed_count,
+            "status": "success" if failed_count == 0 else "partial_success",
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to mark documents as uploaded: {str(e)}"
+        )

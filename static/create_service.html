@@ -157,108 +157,202 @@
             display: flex;
             gap: 8px;
         }
+
+        .row {
+            display: flex;
+            gap: 16px;
+            align-items: end;
+        }
+
+        .row>div {
+            flex: 1;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.2);
+            margin-right: 8px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            transform: translateY(-1px);
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #17a2b8;
+            min-height: 20px;
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h2>Azure Search - Create Service</h2>
+        <h2>Azure Search Services</h2>
 
-        <!-- Data Source Block -->
-        <div class="block" id="datasourceBlock">
-            <div class="block-title">
-                <h3><i class="fa fa-database"></i> Data Source</h3>
-                <button class="icon-btn" id="refreshDatasourceBtn" title="Refresh"><i class="fa fa-sync"></i></button>
+        <!-- Text Service Section -->
+        <div
+            style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #28a745;">
+            <h3 style="color: #28a745; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <i class="fa fa-file-text"></i> Text Service
+            </h3>
+            <p style="color: #155724; margin-bottom: 15px; font-style: italic; font-size: 14px;">Create text indexes for
+                RAG applications, knowledge bases, and chat systems.</p>
+
+            <!-- Text Index Creation -->
+            <div class="block" style="background: white; border: 1px solid #c3e6cb;">
+                <div class="block-title">
+                    <h3><i class="fa fa-plus-circle"></i> Create Text Index</h3>
+                    <button class="icon-btn" id="refreshTextIndexBtn" title="Refresh"><i
+                            class="fa fa-sync"></i></button>
+                </div>
+
+                <div class="row">
+                    <div>
+                        <label for="textIndexName">Index Name</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" id="textIndexName" placeholder="e.g., my-text-index" style="flex: 1;">
+                            <label
+                                style="display: flex; align-items: center; gap: 5px; font-size: 14px; white-space: nowrap;">
+                                <input type="checkbox" id="textForceRecreate">
+                                <span>Force recreate if exists</span>
+                            </label>
+                        </div>
+                        <small style="color: #666; font-size: 12px;">Lowercase letters, numbers, hyphens only (2-60
+                            chars)</small>
+                    </div>
+                </div>
+
+                <button id="createTextIndexBtn" onclick="createTextIndex()"
+                    style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <i class="fa fa-plus"></i> Create Text Index
+                </button>
+
+                <div class="result" id="textResult"></div>
             </div>
-            <label for="dsName">Name</label>
-            <input type="text" id="dsName" placeholder="Data source name">
-            <label for="dsContainer">Container</label>
-            <select id="dsContainer"></select>
-            <button id="createDatasourceBtn">Create Data Source</button>
-            <div class="result" id="dsResult"></div>
         </div>
 
-        <!-- Index Block -->
-        <div class="block" id="indexBlock">
-            <div class="block-title">
-                <h3><i class="fa fa-table"></i> Index</h3>
-                <button class="icon-btn" id="refreshIndexBtn" title="Refresh"><i class="fa fa-sync"></i></button>
-            </div>
-            <div class="row">
-                <div>
-                    <label for="idxName">Name</label>
-                    <input type="text" id="idxName" placeholder="Index name">
-                </div>
-                <div>
-                    <label for="idxLanguage">Language</label>
-                    <select id="idxLanguage">
-                        <option value="en">English</option>
-                        <option value="th">Thai</option>
-                    </select>
-                </div>
-            </div>
-            <button id="createIndexBtn">Create Index</button>
-            <div class="result" id="idxResult"></div>
-        </div>
+        <!-- Document Service Section -->
+        <div
+            style="background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #007bff;">
+            <h3 style="color: #007bff; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <i class="fa fa-file-pdf"></i> Document Service
+            </h3>
+            <p style="color: #004085; margin-bottom: 15px; font-style: italic; font-size: 14px;">Complete pipeline for
+                PDF document processing with OCR, text extraction, and AI enrichment.</p>
 
-        <!-- Skillset Block -->
-        <div class="block" id="skillsetBlock">
-            <div class="block-title">
-                <h3><i class="fa fa-magic"></i> Skillset</h3>
-                <button class="icon-btn" id="refreshSkillsetBtn" title="Refresh"><i class="fa fa-sync"></i></button>
-            </div>
-            <div class="row">
-                <div>
-                    <label for="skillName">Name</label>
-                    <input type="text" id="skillName" placeholder="Skillset name">
+            <!-- Data Source Block -->
+            <div class="block" id="datasourceBlock" style="background: white; border: 1px solid #b3d9ff;">
+                <div class="block-title">
+                    <h3><i class="fa fa-database"></i> Data Source</h3>
+                    <button class="icon-btn" id="refreshDatasourceBtn" title="Refresh"><i
+                            class="fa fa-sync"></i></button>
                 </div>
-                <div>
-                    <label for="skillTargetIndex">Target Index</label>
-                    <select id="skillTargetIndex">
-                        <option value="">Select index...</option>
-                    </select>
-                </div>
+                <label for="dsName">Name</label>
+                <input type="text" id="dsName" placeholder="Data source name">
+                <label for="dsContainer">Container</label>
+                <select id="dsContainer"></select>
+                <button id="createDatasourceBtn">Create Data Source</button>
+                <div class="result" id="dsResult"></div>
             </div>
-            <div class="row">
-                <div>
-                    <label for="skillLanguage">OCR Language</label>
-                    <select id="skillLanguage">
-                        <option value="en">English</option>
-                        <option value="th">Thai</option>
-                    </select>
-                </div>
-            </div>
-            <button id="createSkillsetBtn">Create Skillset</button>
-            <div class="result" id="skillResult"></div>
-        </div>
 
-        <!-- Indexer Block -->
-        <div class="block" id="indexerBlock">
-            <div class="block-title">
-                <h3><i class="fa fa-cogs"></i> Indexer</h3>
-                <button class="icon-btn" id="refreshIndexerBtn" title="Refresh"><i class="fa fa-sync"></i></button>
+            <!-- PDF Index Block -->
+            <div class="block" id="pdfIndexBlock" style="background: white; border: 1px solid #b3d9ff;">
+                <div class="block-title">
+                    <h3><i class="fa fa-file-pdf"></i> PDF Index</h3>
+                    <button class="icon-btn" id="refreshPdfIndexBtn" title="Refresh"><i class="fa fa-sync"></i></button>
+                </div>
+                <div class="row">
+                    <div>
+                        <label for="pdfIndexName">Name</label>
+                        <input type="text" id="pdfIndexName" placeholder="PDF index name">
+                    </div>
+                    <div>
+                        <label for="pdfIndexLanguage">Language</label>
+                        <select id="pdfIndexLanguage">
+                            <option value="en">English</option>
+                            <option value="th">Thai</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="createPdfIndexBtn">Create PDF Index</button>
+                <div class="result" id="pdfIndexResult"></div>
             </div>
-            <div class="row">
-                <div>
-                    <label for="indexerName">Name</label>
-                    <input type="text" id="indexerName" placeholder="Indexer name">
+
+            <!-- Skillset Block -->
+            <div class="block" id="skillsetBlock" style="background: white; border: 1px solid #b3d9ff;">
+                <div class="block-title">
+                    <h3><i class="fa fa-magic"></i> Skillset</h3>
+                    <button class="icon-btn" id="refreshSkillsetBtn" title="Refresh"><i class="fa fa-sync"></i></button>
                 </div>
-                <div>
-                    <label for="indexerDs">Data Source</label>
-                    <select id="indexerDs"></select>
+                <div class="row">
+                    <div>
+                        <label for="skillName">Name</label>
+                        <input type="text" id="skillName" placeholder="Skillset name">
+                    </div>
+                    <div>
+                        <label for="skillTargetIndex">Target PDF Index</label>
+                        <select id="skillTargetIndex">
+                            <option value="">Select PDF index...</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label for="indexerIdx">Index</label>
-                    <select id="indexerIdx"></select>
+                <div class="row">
+                    <div>
+                        <label for="skillLanguage">OCR Language</label>
+                        <select id="skillLanguage">
+                            <option value="en">English</option>
+                            <option value="th">Thai</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label for="indexerSkill">Skillset</label>
-                    <select id="indexerSkill"></select>
-                </div>
+                <button id="createSkillsetBtn">Create Skillset</button>
+                <div class="result" id="skillResult"></div>
             </div>
-            <button id="createIndexerBtn">Create Indexer</button>
-            <div class="result" id="indexerResult"></div>
+
+            <!-- Indexer Block -->
+            <div class="block" id="indexerBlock" style="background: white; border: 1px solid #b3d9ff;">
+                <div class="block-title">
+                    <h3><i class="fa fa-cogs"></i> Indexer</h3>
+                    <button class="icon-btn" id="refreshIndexerBtn" title="Refresh"><i class="fa fa-sync"></i></button>
+                </div>
+                <div class="row">
+                    <div>
+                        <label for="indexerName">Name</label>
+                        <input type="text" id="indexerName" placeholder="Indexer name">
+                    </div>
+                    <div>
+                        <label for="indexerDs">Data Source</label>
+                        <select id="indexerDs"></select>
+                    </div>
+                    <div>
+                        <label for="indexerIdx">PDF Index</label>
+                        <select id="indexerIdx"></select>
+                    </div>
+                    <div>
+                        <label for="indexerSkill">Skillset</label>
+                        <select id="indexerSkill"></select>
+                    </div>
+                </div>
+                <button id="createIndexerBtn">Create Indexer</button>
+                <div class="result" id="indexerResult"></div>
+            </div>
         </div>
+        <!-- End Document Service Section -->
     </div>
     <script>
         async function loadDropdown(endpoint, selectId) {
@@ -294,6 +388,186 @@
         }
         async function loadIndexDropdown() {
             await loadDropdown('/create-service/list-indexes', 'indexerIdx');
+            await loadTextIndexes();
+        }
+
+        // Load available text indexes for display
+        async function loadTextIndexes() {
+            try {
+                const response = await fetch('/azure-index/indexes');
+                if (response.ok) {
+                    const data = await response.json();
+                    const indexListDiv = document.getElementById('textIndexList');
+
+                    if (data.indexes && data.indexes.length > 0) {
+                        indexListDiv.innerHTML = data.indexes.map(index =>
+                            `<div style="padding: 5px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+                                <span>📊 ${index.name}</span>
+                                <button onclick="deleteTextIndex('${index.name}')" style="background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Delete</button>
+                            </div>`
+                        ).join('');
+                    } else {
+                        indexListDiv.innerHTML = '<div style="color: #666; font-style: italic;">No text indexes found</div>';
+                    }
+                } else {
+                    document.getElementById('textIndexList').innerHTML = '<div style="color: #dc3545;">Failed to load indexes</div>';
+                }
+            } catch (error) {
+                console.error('Error loading text indexes:', error);
+                document.getElementById('textIndexList').innerHTML = '<div style="color: #dc3545;">Error loading indexes</div>';
+            }
+        }
+
+        // Validate index name
+        function validateIndexName(indexName) {
+            if (!indexName || indexName.length < 2 || indexName.length > 60) {
+                return false;
+            }
+            if (!/^[a-z0-9-]+$/.test(indexName)) {
+                return false;
+            }
+            if (indexName.startsWith('-') || indexName.endsWith('-')) {
+                return false;
+            }
+            return true;
+        }
+
+        // Create text index
+        async function createTextIndex() {
+            const indexName = document.getElementById('textIndexName').value.trim();
+            const forceRecreate = document.getElementById('textForceRecreate').checked;
+            const resultDiv = document.getElementById('textResult');
+
+            if (!indexName) {
+                resultDiv.textContent = 'Please enter an index name';
+                resultDiv.style.color = '#dc3545';
+                return;
+            }
+
+            if (!validateIndexName(indexName)) {
+                resultDiv.textContent = 'Index name must be 2-60 characters, lowercase letters, numbers, and hyphens only. Cannot start or end with hyphen.';
+                resultDiv.style.color = '#dc3545';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = `
+                    <div style="background: #e2f3ff; color: #0c5460; padding: 12px; border-radius: 8px; border: 1px solid #bee5eb; margin-top: 15px;">
+                        <i class="fa fa-spinner fa-spin"></i> Creating text index: ${indexName}...
+                        <br><small>This may take a few moments</small>
+                    </div>
+                `;
+
+                const response = await fetch('/create-service/create-text-index', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        index_name: indexName
+                    }),
+                });
+
+                if (!response.ok) {
+                    // Handle HTTP errors
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.detail) {
+                            errorMessage = errorData.detail;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        }
+                    } catch (e) {
+                        // If response is not JSON, use status text
+                        const errorText = await response.text();
+                        if (errorText) {
+                            errorMessage = errorText;
+                        }
+                    }
+
+                    resultDiv.innerHTML = `
+                        <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; border: 1px solid #f5c6cb; margin-top: 15px;">
+                            <i class="fa fa-exclamation-triangle"></i> ${errorMessage}
+                        </div>
+                    `;
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    resultDiv.innerHTML = `
+                        <div style="background: #d4edda; color: #155724; padding: 12px; border-radius: 8px; border: 1px solid #c3e6cb; margin-top: 15px;">
+                            <i class="fa fa-check-circle"></i> ${result.message}
+                            <br><small>Index is ready for text document uploads</small>
+                        </div>
+                    `;
+                    document.getElementById('textIndexName').value = '';
+                    document.getElementById('textForceRecreate').checked = false;
+                    await loadTextIndexes(); // Refresh the index list
+                } else if (result.status === 'exists') {
+                    resultDiv.innerHTML = `
+                        <div style="background: #d1ecf1; color: #0c5460; padding: 12px; border-radius: 8px; border: 1px solid #bee5eb; margin-top: 15px;">
+                            <i class="fa fa-info-circle"></i> ${result.message}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; border: 1px solid #f5c6cb; margin-top: 15px;">
+                            <i class="fa fa-exclamation-triangle"></i> ${result.message}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('Error creating text index:', error);
+                let errorMessage = 'Network error or server unavailable';
+
+                if (error.message) {
+                    errorMessage = error.message;
+                }
+
+                resultDiv.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; border: 1px solid #f5c6cb; margin-top: 15px;">
+                        <i class="fa fa-exclamation-triangle"></i> Failed to create text index: ${errorMessage}
+                        <br><small>Please check your connection and try again</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Delete text index
+        async function deleteTextIndex(indexName) {
+            if (!confirm(`Are you sure you want to delete text index "${indexName}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/azure-index/index/${indexName}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    alert(`Text index "${indexName}" deleted successfully`);
+                    await loadTextIndexes();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to delete text index: ${error}`);
+                }
+            } catch (error) {
+                console.error('Error deleting text index:', error);
+                alert(`Error deleting text index: ${error.message}`);
+            }
+        }
+
+        // Create PDF index (existing functionality)
+        async function createPdfIndex() {
+            const data = {
+                name: document.getElementById('pdfIndexName').value,
+                analyzer_name: document.getElementById('pdfIndexLanguage').value
+            };
+            await postJson('/create-service/index-pdf', data, document.getElementById('pdfIndexResult'));
         }
         async function loadSkillsetDropdown() {
             await loadDropdown('/create-service/list-skillsets', 'indexerSkill');
@@ -307,10 +581,13 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             loadAllDropdowns();
+
             document.getElementById('refreshDatasourceBtn').onclick = loadDatasourceDropdown;
-            document.getElementById('refreshIndexBtn').onclick = loadIndexDropdown;
+            document.getElementById('refreshTextIndexBtn').onclick = loadTextIndexes;
+            document.getElementById('refreshPdfIndexBtn').onclick = loadIndexDropdown;
             document.getElementById('refreshSkillsetBtn').onclick = loadSkillsetDropdown;
             document.getElementById('refreshIndexerBtn').onclick = loadAllDropdowns;
+
             // Button handlers
             document.getElementById('createDatasourceBtn').onclick = function () {
                 const data = {
@@ -319,13 +596,10 @@
                 };
                 postJson('/create-service/datasource', data, document.getElementById('dsResult'));
             };
-            document.getElementById('createIndexBtn').onclick = function () {
-                var data = {
-                    name: document.getElementById('idxName').value,
-                    analyzer_name: document.getElementById('idxLanguage').value
-                };
-                postJson('/create-service/index-pdf', data, document.getElementById('idxResult'));
-            };
+
+            // PDF Index creation
+            document.getElementById('createPdfIndexBtn').onclick = createPdfIndex;
+
             document.getElementById('createSkillsetBtn').onclick = function () {
                 var data = {
                     name: document.getElementById('skillName').value,
@@ -334,6 +608,7 @@
                 };
                 postJson('/create-service/skillset', data, document.getElementById('skillResult'));
             };
+
             document.getElementById('createIndexerBtn').onclick = function () {
                 const data = {
                     name: document.getElementById('indexerName').value,

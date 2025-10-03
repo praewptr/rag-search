@@ -222,6 +222,83 @@ class OracleDBService:
                 detail=f"Failed to fetch record from Oracle database: {str(e)}",
             )
 
+    def mark_document_uploaded(self, record_id: int) -> bool:
+        """
+        Mark a document as uploaded to Azure Search (set ADDED = 1).
+
+        Args:
+            record_id: The ID of the record to mark as uploaded
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            connection = self.get_connection()
+            cursor = connection.cursor()
+
+            # Update ADDED column to 1
+            cursor.execute(
+                "UPDATE KNOWLEDGE_DATA SET ADDED = 1 WHERE ID = :id", {"id": record_id}
+            )
+
+            # Check if any rows were updated
+            rows_updated = cursor.rowcount
+            connection.commit()
+            cursor.close()
+
+            return rows_updated > 0
+
+        except Exception as e:
+            print(f"Error marking document {record_id} as uploaded: {e}")
+            try:
+                connection.rollback()
+            except Exception:
+                pass
+            return False
+
+    def mark_documents_uploaded_batch(self, record_ids: List[int]) -> Dict[str, int]:
+        """
+        Mark multiple documents as uploaded to Azure Search (set ADDED = 1).
+
+        Args:
+            record_ids: List of record IDs to mark as uploaded
+
+        Returns:
+            dict: Statistics about the update operation
+        """
+        try:
+            connection = self.get_connection()
+            cursor = connection.cursor()
+
+            # Prepare batch update
+            update_data = [{"id": record_id} for record_id in record_ids]
+
+            cursor.executemany(
+                "UPDATE KNOWLEDGE_DATA SET ADDED = 1 WHERE ID = :id", update_data
+            )
+
+            rows_updated = cursor.rowcount
+            connection.commit()
+            cursor.close()
+
+            return {
+                "updated_count": rows_updated,
+                "failed_count": len(record_ids) - rows_updated,
+                "total_requested": len(record_ids),
+            }
+
+        except Exception as e:
+            print(f"Error in batch update: {e}")
+            try:
+                connection.rollback()
+            except Exception:
+                pass
+            return {
+                "updated_count": 0,
+                "failed_count": len(record_ids),
+                "total_requested": len(record_ids),
+            }
+
     def __del__(self):
         """Cleanup: close connection when object is destroyed."""
         self.close_connection()

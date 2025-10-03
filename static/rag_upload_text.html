@@ -205,20 +205,21 @@
             content: '✓';
             position: absolute;
             top: 50%;
-            left: 15px;
+            left: 12px;
             transform: translateY(-50%);
             background: #28a745;
             color: white;
-            padding: 8px;
+            padding: 4px;
             border-radius: 50%;
-            font-size: 14px;
+            font-size: 10px;
             font-weight: bold;
             z-index: 5;
-            width: 24px;
-            height: 24px;
+            width: 16px;
+            height: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-right: 8px;
         }
 
         .document-main-content {
@@ -226,13 +227,13 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-left: 45px;
-            /* Space for checkbox */
+            padding-left: 0px;
+            /* Minimal gap so content is close to checkmark */
         }
 
         .document-main-content.no-selection {
-            margin-left: 15px;
-            /* No space needed when not selected */
+            margin-left: 0px;
+            /* No gap when not selected */
         }
 
         .document-info {
@@ -266,6 +267,15 @@
             font-size: 14px;
         }
 
+        .btn-xs {
+            padding: 8px 22px;
+            font-size: 16px;
+            border-radius: 8px;
+            box-shadow: none;
+            transition: background 0.2s, color 0.2s;
+        }
+        }
+
         .document-source {
             font-weight: 500;
             color: #6c757d;
@@ -288,11 +298,11 @@
             font-weight: 600;
             margin-bottom: 4px;
             /* Allow full content display */
-            white-space: pre-wrap;
+            /* white-space: pre-wrap; */
             word-wrap: break-word;
             max-width: 100%;
             margin-left: 0;
-            padding-left: 0;
+            padding-left: 40px;
             text-align: left;
         }
 
@@ -308,6 +318,41 @@
         .document-timestamp::before {
             content: '🕒';
             font-size: 0.9em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 400;
+            text-transform: uppercase;
+            margin-left: 5px;
+            letter-spacing: 0.2px;
+        }
+
+        .status-uploaded {
+            background: #e6f9ed;
+            color: #4ca96b;
+            border: 1px solid #b7e4c7;
+        }
+
+        .status-pending {
+            background: #fffbe6;
+            color: #c9a13b;
+            border: 1px solid #ffe066;
+        }
+
+        .status-uploaded {
+            background: #e6f9ed;
+            color: #218838;
+            border: 1px solid #b7e4c7;
+        }
+
+        .status-pending {
+            background: #fffbe6;
+            color: #b8860b;
+            border: 1px solid #ffe066;
         }
 
         .loading {
@@ -448,50 +493,21 @@
 <body>
     <div class="container">
         <div class="header">
+            <div style="text-align:left; margin-bottom: 10px;">
+                <a href="/static/dashboard.html" class="back-btn">← Back to Dashboard</a>
+            </div>
             <h1>🚀 RAG Data Manager</h1>
             <p>Manage your documents before uploading to Azure AI Search</p>
         </div>
 
         <div class="content">
-            <div style="padding: 20px; text-align: left;">
-                <a href="/static/dashboard.html" class="back-btn">← Back to Dashboard</a>
-            </div>
             <!-- Message area -->
             <div id="message" class="message"></div>
 
-            <!-- Create Index Section -->
-            <div class="index-selector">
-                <h3>🔧 Create New Index</h3>
-                <div class="selector-container">
-                    <input type="text" id="newIndexName" class="search-input"
-                        placeholder="Enter new index name (lowercase, hyphens allowed)..."
-                        style="flex: 2; min-width: 300px;">
-                    <div class="create-index-controls">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="forceRecreate">
-                            <span>Force recreate if exists</span>
-                        </label>
-                        <button class="btn btn-info" onclick="createIndex()">
-                            ➕ Create Index
-                        </button>
-                    </div>
-                </div>
-            </div>
 
 
             <!-- Actions -->
             <div class="actions">
-                <div>
-                    <button class="btn btn-primary" onclick="loadDocuments()">
-                        🔄 Refresh Data
-                    </button>
-                    <button class="btn btn-info" onclick="selectAll()">
-                        ☑️ Select All
-                    </button>
-                    <button class="btn btn-info" onclick="deselectAll()">
-                        ☐ Deselect All
-                    </button>
-                </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <label for="indexDropdown" style="font-weight: 600;">Index:</label>
                     <select id="indexDropdown"
@@ -530,6 +546,34 @@
                     <span style="font-size: 1.2em;">🗄️</span>
                     Text from database
                 </h3>
+
+                <!-- Document Controls -->
+                <div
+                    style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-xs" style="background:#fff;color:#138496;border:1.5px solid #17a2b8;"
+                            onclick="loadDocuments()" title="Refresh Data">
+                            Refresh
+                        </button>
+                        <button class="btn btn-xs" style="background:#fff;color:#218838;border:1.5px solid #28a745;"
+                            onclick="selectAll()" title="Select All">
+                            Select All
+                        </button>
+                        <button class="btn btn-xs" style="background:#fff;color:#c2185b;border:1.5px solid #c2185b;"
+                            onclick="deselectAll()" title="Deselect All">
+                            Deselect
+                        </button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label for="statusFilter" style="font-weight: 600;">Filter:</label>
+                        <select id="statusFilter" onchange="filterDocuments()"
+                            style="padding: 8px 16px; border-radius: 8px; font-size: 16px; min-width: 120px;">
+                            <option value="all">All</option>
+                            <option value="uploaded">Uploaded</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <!-- Documents -->
@@ -541,6 +585,7 @@
 
     <script>
         let documents = [];
+        let filteredDocuments = []; // For filtered display
         let selectedDocuments = new Set();
         let selectedArray = []; // Backup array for debugging
 
@@ -579,6 +624,7 @@
 
                 const data = await response.json();
                 documents = data.value || [];
+                filteredDocuments = [...documents]; // Initialize filtered documents
 
                 renderDocuments();
                 updateStats();
@@ -587,10 +633,31 @@
                 console.error('Error loading documents:', error);
                 showMessage('Failed to load documents: ' + error.message, 'error');
                 documents = [];
+                filteredDocuments = [];
                 renderDocuments();
             } finally {
                 showLoading(false);
             }
+        }
+
+        function filterDocuments() {
+            const filterValue = document.getElementById('statusFilter').value;
+
+            switch (filterValue) {
+                case 'uploaded':
+                    filteredDocuments = documents.filter(doc => doc.added === 1);
+                    break;
+                case 'pending':
+                    filteredDocuments = documents.filter(doc => doc.added === 0);
+                    break;
+                default: // 'all'
+                    filteredDocuments = [...documents];
+                    break;
+            }
+
+            console.log(`Filtered documents for "${filterValue}":`, filteredDocuments.length);
+            renderDocuments();
+            updateStats();
         }
         function validateIndexName(indexName) {
             if (!indexName || indexName.length < 2 || indexName.length > 60) {
@@ -719,25 +786,40 @@
         function renderDocuments() {
             const grid = document.getElementById('documentsGrid');
 
-            if (documents.length === 0) {
+            if (filteredDocuments.length === 0) {
                 grid.innerHTML = `
                     <div class="no-documents">
                         <h3>📄 No Documents Found</h3>
-                        <p>Load your data from the mock database file (rag_text.json)</p>
+                        <p>No documents match the current filter or no data available</p>
                     </div>
                 `;
                 return;
             }
 
-            grid.innerHTML = documents.map(doc => `
-                <div class="document-card ${selectedDocuments.has(String(doc.id)) ? 'selected' : ''}" 
-                     id="doc-${doc.id}" 
-                     onclick="toggleDocumentClick(event, '${doc.id}')">
-                    
-                    <div class="document-main-content ${selectedDocuments.has(String(doc.id)) ? '' : 'no-selection'}">
+            // Clear existing content first
+            grid.innerHTML = '';
+
+            // Create each card individually with proper event listeners
+            filteredDocuments.forEach(doc => {
+                const docId = String(doc.ID || doc.id); // Handle both ID and id fields
+                const isSelected = selectedDocuments.has(docId) || selectedArray.includes(docId);
+                const status = doc.added === 1 ? 'uploaded' : 'pending';
+                const statusText = doc.added === 1 ? 'Uploaded' : 'Pending';
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'document-card';
+                if (isSelected) {
+                    cardDiv.classList.add('selected');
+                }
+                cardDiv.id = `doc-${doc.ID || doc.id}`;
+
+                cardDiv.innerHTML = `
+                    <div class="document-main-content ${isSelected ? '' : 'no-selection'}">
                         <div class="document-info">
                             <div class="document-header">
-                                <div class="document-source">${escapeHtml(doc.source)}</div>
+                                <div class="document-source">${escapeHtml(doc.source)}
+                                    <span class="status-badge status-${status}">${statusText}</span>
+                                </div>
                             </div>
                             <div class="document-content" title="${escapeHtml(doc.content)}">
                                 ${escapeHtml(doc.content)}
@@ -747,72 +829,71 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="document-actions" onclick="event.stopPropagation()">
-                        <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc.id}')" title="Delete document">
+                    <div class="document-actions">
+                        <button class="btn btn-danger btn-sm" title="Delete document">
                             🗑️
                         </button>
                     </div>
-                </div>
-            `).join('');
-        }
+                `;
 
-        function toggleDocumentClick(event, docId) {
-            // Prevent toggle if clicking on action buttons
-            if (event.target.closest('.document-actions')) {
-                return;
-            }
+                // Individual card selection: toggle only the clicked card
+                cardDiv.addEventListener('click', function (event) {
+                    // Ignore if click is on delete button
+                    if (event.target.closest('.btn-danger')) return;
 
-            // Ensure docId is treated consistently (convert to string)
-            docId = String(docId);
-            console.log('Card click toggle:', docId, typeof docId);
+                    const id = String(doc.ID || doc.id); // Handle both ID and id fields
+                    console.log('Clicking card with ID:', id);
 
-            // Toggle selection
-            if (selectedDocuments.has(docId)) {
-                selectedDocuments.delete(docId);
-                const index = selectedArray.indexOf(docId);
-                if (index > -1) selectedArray.splice(index, 1);
-                console.log('Removed from selection via card click:', docId);
-            } else {
-                selectedDocuments.add(docId);
-                if (!selectedArray.includes(docId)) selectedArray.push(docId);
-                console.log('Added to selection via card click:', docId);
-            }
+                    if (selectedDocuments.has(id)) {
+                        // Remove from selection
+                        selectedDocuments.delete(id);
+                        const arrIdx = selectedArray.indexOf(id);
+                        if (arrIdx !== -1) selectedArray.splice(arrIdx, 1);
 
-            // Update the specific card immediately
-            updateDocumentSelection(docId);
+                        this.classList.remove('selected');
+                        const mainContent = this.querySelector('.document-main-content');
+                        if (mainContent) mainContent.classList.add('no-selection');
+                        console.log('Deselected:', id);
+                    } else {
+                        // Add to selection
+                        selectedDocuments.add(id);
+                        if (!selectedArray.includes(id)) selectedArray.push(id);
+
+                        this.classList.add('selected');
+                        const mainContent = this.querySelector('.document-main-content');
+                        if (mainContent) mainContent.classList.remove('no-selection');
+                        console.log('Selected:', id);
+                    }
+
+                    console.log('After toggle - Set size:', selectedDocuments.size, 'Array length:', selectedArray.length);
+                    console.log('Set contents:', Array.from(selectedDocuments));
+                    console.log('Array contents:', selectedArray);
+
+                    updateStats();
+                    updateButtons();
+                });
+
+                // Add click event listener to delete button
+                const deleteBtn = cardDiv.querySelector('.btn-danger');
+                deleteBtn.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    deleteDocument(doc.ID || doc.id); // Handle both ID and id fields
+                });
+
+                grid.appendChild(cardDiv);
+            });
+
+            // Update stats and buttons after rendering
             updateStats();
             updateButtons();
-
-            console.log('After card click - selectedDocuments:', Array.from(selectedDocuments));
-            console.log('After card click - selectedArray:', selectedArray);
-        }
-
-        function updateDocumentSelection(docId) {
-            // Ensure docId is treated consistently (convert to string)
-            docId = String(docId);
-
-            const card = document.getElementById(`doc-${docId}`);
-            if (!card) {
-                console.warn('Card not found for docId:', docId);
-                return;
-            }
-
-            if (selectedDocuments.has(docId)) {
-                card.classList.add('selected');
-                console.log('Selected card (visual only):', docId);
-            } else {
-                card.classList.remove('selected');
-                console.log('Deselected card (visual only):', docId);
-            }
         }
 
         function selectAll() {
             selectedDocuments.clear(); // Clear first to ensure clean state
             selectedArray.length = 0; // Clear backup array
 
-            documents.forEach(doc => {
-                const docId = String(doc.id);
+            filteredDocuments.forEach(doc => {
+                const docId = String(doc.ID || doc.id); // Handle both ID and id fields
                 selectedDocuments.add(docId); // Ensure string type
                 selectedArray.push(docId); // Add to backup array
             });
@@ -834,22 +915,27 @@
         }
 
         function updateStats() {
-            console.log('updateStats called - selectedDocuments.size:', selectedDocuments.size);
-            console.log('updateStats called - selectedArray.length:', selectedArray.length);
+            const selectedCount = selectedDocuments.size;
+            console.log('updateStats called - selectedDocuments.size:', selectedCount);
             console.log('selectedDocuments contents:', Array.from(selectedDocuments));
-            console.log('selectedArray contents:', selectedArray);
+            console.log('selectedArray contents (backup):', selectedArray);
 
-            document.getElementById('totalDocs').textContent = documents.length;
-            // Use array length as backup
-            const displayCount = Math.max(selectedDocuments.size, selectedArray.length);
-            document.getElementById('selectedDocs').textContent = displayCount;
-            console.log('Updated selectedDocs display to:', displayCount);
+            // Show filtered count vs total count
+            const totalText = filteredDocuments.length === documents.length
+                ? documents.length
+                : `${filteredDocuments.length} / ${documents.length}`;
+
+            document.getElementById('totalDocs').textContent = totalText;
+            document.getElementById('selectedDocs').textContent = selectedCount;
+            console.log('Updated totalDocs display to:', totalText);
+            console.log('Updated selectedDocs display to:', selectedCount);
         }
 
         function updateButtons() {
             const hasSelection = selectedDocuments.size > 0;
             document.getElementById('uploadBtn').disabled = !hasSelection;
             document.getElementById('deleteBtn').disabled = !hasSelection;
+            console.log('Buttons updated - hasSelection:', hasSelection, 'count:', selectedDocuments.size);
         }
 
         async function deleteDocument(docId) {
@@ -1000,10 +1086,44 @@
 
                 const result = await response.json();
                 console.log('Upload result:', result);
-                showMessage(`${result.message} (${result.uploaded_count || result.successful_uploads || selectedDocs.length} documents)`, 'success');
 
-                // Clear selection after successful upload
+                // If upload was successful, mark documents as uploaded in database
+                if (result.status === 'success' || result.uploaded_count > 0) {
+                    try {
+                        // Get document IDs that were successfully uploaded
+                        const documentIds = selectedDocs.map(doc => doc.ID || doc.id);
+
+                        console.log('Marking documents as uploaded:', documentIds);
+
+                        const markResponse = await fetch('/rag-upload-text/mark-uploaded', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                document_ids: documentIds
+                            })
+                        });
+
+                        if (markResponse.ok) {
+                            const markResult = await markResponse.json();
+                            console.log('Mark uploaded result:', markResult);
+                            showMessage(`${result.message} และอัปเดตสถานะในฐานข้อมูลเรียบร้อย (${markResult.updated_count} รายการ)`, 'success');
+                        } else {
+                            console.warn('Failed to mark documents as uploaded in database');
+                            showMessage(`${result.message} แต่ไม่สามารถอัปเดตสถานะในฐานข้อมูลได้`, 'success');
+                        }
+                    } catch (markError) {
+                        console.error('Error marking documents as uploaded:', markError);
+                        showMessage(`${result.message} แต่เกิดข้อผิดพลาดในการอัปเดตสถานะ`, 'success');
+                    }
+                } else {
+                    showMessage(`${result.message} (${result.uploaded_count || result.successful_uploads || selectedDocs.length} documents)`, 'error');
+                }
+
+                // Clear selection and reload documents to reflect status changes
                 deselectAll();
+                await loadDocuments(); // Reload to show updated status
 
             } catch (error) {
                 console.error('Error uploading to Azure:', error);

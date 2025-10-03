@@ -1,4 +1,7 @@
+import logging
+
 import requests
+from azure.search.documents.indexes.models import SearchIndex
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -6,14 +9,18 @@ from config import (
     azure_search_endpoint,
     azure_search_key,
 )
+from models.azure_index import CreateIndexResponse
 from services.client import blob_service_client
 from services.index_pdf import (
     create_datasource,
     create_index,
     create_indexer,
-    create_search_fields,
     create_skillset,
+)
+from utils.azure_index import (
+    create_search_fields,
     create_vector_search_config,
+    get_index_client,
 )
 
 router = APIRouter()
@@ -311,3 +318,43 @@ async def create_datasource_endpoint(request: CreateDataSourceRequest):
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+class CreateTextIndexRequest(BaseModel):
+    index_name: str
+
+
+@router.post("/create-text-index")
+async def create_text_index(request: CreateTextIndexRequest):
+    """Create a search index specifically for text documents (RAG)."""
+    try:
+        # Get the search client
+        search_client = get_index_client()
+
+        # Create search fields for text documents
+        fields = create_search_fields()
+
+        # Create vector search configuration
+        vector_search_config = create_vector_search_config()
+
+        # Create the index
+        index = SearchIndex(
+            name=request.index_name,
+            fields=fields,
+            vector_search=vector_search_config,
+        )
+
+        # Create the index in Azure Search
+        result = search_client.create_index(index)
+
+        return CreateIndexResponse(
+            index_name=result.name,
+            message=f"Text index '{result.name}' created successfully.",
+            status="success",
+        )
+
+    except Exception as e:
+        logging.error(f"Error creating text index: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create text index: {str(e)}"
+        )
