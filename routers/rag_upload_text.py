@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Query
 
 from models.upload_txt import (
     DocumentItem,
@@ -15,19 +15,25 @@ from utils.text_manage import (
 router = APIRouter()
 
 
+
 @router.get("/text", response_model=DocumentResponse)
-async def get_documents():
+async def get_documents(status: str = Query("all", enum=["all", "pending", "uploaded"])) -> DocumentResponse:
     """
-    Retrieve all documents from the Oracle database.
+    Retrieve documents from the Oracle database, filtered by upload status.
+    - status: "all" (default), "pending" (ADDED=0), or "uploaded" (ADDED=1)
     """
     try:
-        data = oracle_service.fetch_knowledge_data()
+        if status == "pending":
+            data = oracle_service.fetch_knowledge_data(added=0)
+        elif status == "uploaded":
+            data = oracle_service.fetch_knowledge_data(added=1)
+        else:
+            data = oracle_service.fetch_knowledge_data()
         return data
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to load documents: {str(e)}"
         )
-
 
 # @router.get("/text", response_model=DocumentResponse)
 # async def get():
@@ -55,55 +61,55 @@ async def get_documents():
 #                 "added": 0,
 #             },
 #         ]
-#     }
+    # }
 
 
-@router.delete("/text/bulk")
-async def delete_multiple_documents(doc_ids: list[int]):
-    """
-    w,j    Delete multiple documents by their IDs from the Oracle database.
-    """
-    try:
-        deleted_count = 0
-        failed_deletions = []
+# @router.delete("/text/bulk")
+# async def delete_multiple_documents(doc_ids: list[int]):
+#     """
+#     w,j    Delete multiple documents by their IDs from the Oracle database.
+#     """
+#     try:
+#         deleted_count = 0
+#         failed_deletions = []
 
-        for doc_id in doc_ids:
-            try:
-                # Check if document exists
-                existing_doc = oracle_service.get_record_by_id(doc_id)
-                if not existing_doc:
-                    failed_deletions.append(f"Document ID {doc_id}: Not found")
-                    continue
+#         for doc_id in doc_ids:
+#             try:
+#                 # Check if document exists
+#                 existing_doc = oracle_service.get_record_by_id(doc_id)
+#                 if not existing_doc:
+#                     failed_deletions.append(f"Document ID {doc_id}: Not found")
+#                     continue
 
-                # Delete the document
-                success = oracle_service.delete_knowledge_record(doc_id)
+#                 # Delete the document
+#                 success = oracle_service.delete_knowledge_record(doc_id)
 
-                if success:
-                    deleted_count += 1
-                else:
-                    failed_deletions.append(
-                        f"Document ID {doc_id}: Could not be deleted"
-                    )
+#                 if success:
+#                     deleted_count += 1
+#                 else:
+#                     failed_deletions.append(
+#                         f"Document ID {doc_id}: Could not be deleted"
+#                     )
 
-            except Exception as e:
-                failed_deletions.append(f"Document ID {doc_id}: {str(e)}")
+#             except Exception as e:
+#                 failed_deletions.append(f"Document ID {doc_id}: {str(e)}")
 
-        response = {
-            "message": f"Successfully deleted {deleted_count} of {len(doc_ids)} documents",
-            "deleted_count": deleted_count,
-            "total_requested": len(doc_ids),
-            "status": "success" if deleted_count > 0 else "partial_success",
-        }
+#         response = {
+#             "message": f"Successfully deleted {deleted_count} of {len(doc_ids)} documents",
+#             "deleted_count": deleted_count,
+#             "total_requested": len(doc_ids),
+#             "status": "success" if deleted_count > 0 else "partial_success",
+#         }
 
-        if failed_deletions:
-            response["failed_deletions"] = failed_deletions
+#         if failed_deletions:
+#             response["failed_deletions"] = failed_deletions
 
-        return response
+#         return response
 
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to delete documents: {str(e)}"
-        )
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500, detail=f"Failed to delete documents: {str(e)}"
+#         )
 
 
 @router.delete("/text/{doc_id}")
@@ -134,16 +140,16 @@ async def delete_document(doc_id: int):
         )
 
 
-@router.post("/upload_batch")
-async def upload_batch(payload: DocumentsPayload):
-    try:
-        result = process_and_upload_batch([doc.model_dump() for doc in payload.value])
-        return {
-            "status": "success",
-            "uploaded_chunks": len(result),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.post("/upload_batch")
+# async def upload_batch(payload: DocumentsPayload):
+#     try:
+#         result = process_and_upload_batch([doc.model_dump() for doc in payload.value])
+#         return {
+#             "status": "success",
+#             "uploaded_chunks": len(result),
+#         }
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/upload-text")
@@ -182,22 +188,22 @@ async def upload_text_documents(payload: DocumentsPayload) -> dict:
             )
 
             if failed_count == 0:
-                message = f"🎉 Successfully uploaded all {uploaded_count} document chunks to Azure AI Search{target_index_msg}!"
+                message = f"Successfully uploaded all {uploaded_count} document chunks to Azure AI Search{target_index_msg}!"
                 status = "success"
             else:
-                message = f"⚠️ Uploaded {uploaded_count}/{total_docs} document chunks{target_index_msg}, {failed_count} failed."
+                message = f"Uploaded {uploaded_count}/{total_docs} document chunks{target_index_msg}, {failed_count} failed."
                 status = "partial_success"
         elif result:
             # Handle other result formats
             target_index_msg = (
                 f" to index '{index_name}'" if index_name else " to default index"
             )
-            message = f"🎉 Successfully processed and uploaded {len(documents_data)} documents to Azure AI Search{target_index_msg}!"
+            message = f"Successfully processed and uploaded {len(documents_data)} documents to Azure AI Search{target_index_msg}!"
             status = "success"
             uploaded_count = len(documents_data)
             failed_count = 0
         else:
-            message = "❌ Failed to upload documents to Azure AI Search"
+            message = "Failed to upload documents to Azure AI Search"
             status = "failed"
             uploaded_count = 0
             failed_count = len(payload.value)
@@ -218,55 +224,55 @@ async def upload_text_documents(payload: DocumentsPayload) -> dict:
         )
 
 
-@router.post("/upload-single")
-async def upload_single_document(document: DocumentItem) -> dict:
-    """
-    Upload a single text document to Azure Search.
-    """
-    try:
-        validate_document(document)
+# @router.post("/upload-single")
+# async def upload_single_document(document: DocumentItem) -> dict:
+#     """
+#     Upload a single text document to Azure Search.
+#     """
+#     try:
+#         validate_document(document)
 
-        json_data = {
-            "content": document.content,
-            "source": document.source,
-            "timestamp": document.timestamp,
-        }
+#         json_data = {
+#             "content": document.content,
+#             "source": document.source,
+#             "timestamp": document.timestamp,
+#         }
 
-        result = process_and_upload(json_data)
+#         result = process_and_upload(json_data)
 
-        if result:
-            return {
-                "message": f"Successfully uploaded document from {document.source}",
-                "uploaded_count": 1,
-                "status": "success",
-            }
-        else:
-            return {
-                "message": f"Failed to upload document from {document.source}",
-                "uploaded_count": 0,
-                "status": "failed",
-            }
+#         if result:
+#             return {
+#                 "message": f"Successfully uploaded document from {document.source}",
+#                 "uploaded_count": 1,
+#                 "status": "success",
+#             }
+#         else:
+#             return {
+#                 "message": f"Failed to upload document from {document.source}",
+#                 "uploaded_count": 0,
+#                 "status": "failed",
+#             }
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to upload document: {str(e)}"
-        )
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500, detail=f"Failed to upload document: {str(e)}"
+#         )
 
 
-@router.get("/index-text")
-def get_text_index():
-    results = search_client_text.search(search_text="*")
-    all_contents = []
-    for doc in results:
-        # Assuming 'content' is the field name in your index
-        content = doc.get("content")
+# @router.get("/index-text")
+# def get_text_index():
+#     results = search_client_text.search(search_text="*")
+#     all_contents = []
+#     for doc in results:
+#         # Assuming 'content' is the field name in your index
+#         content = doc.get("content")
 
-        if content:
-            all_contents.append(content)
+#         if content:
+#             all_contents.append(content)
 
-    return {"documents": all_contents}
+#     return {"documents": all_contents}
 
 
 @router.post("/mark-uploaded")

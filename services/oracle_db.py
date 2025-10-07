@@ -66,9 +66,12 @@ class OracleDBService:
             except Exception as e:
                 print(f"Error closing Oracle connection: {e}")
 
-    def fetch_knowledge_data(self) -> Dict[str, List[Dict[str, Any]]]:
+    def fetch_knowledge_data(self, added: Optional[int] = None) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Fetch all data from DIGITAL_TEST.TBL_KNOWLEDGE table.
+        Fetch data from test.knowledge table with optional filtering.
+
+        Args:
+            added: Optional filter for ADDED column (0 for pending, 1 for uploaded, None for all)
 
         Returns:
             Dict containing 'value' key with list of documents
@@ -76,9 +79,12 @@ class OracleDBService:
         try:
             connection = self.get_connection()
             cursor = connection.cursor()
-
-            # Execute the query
-            cursor.execute("SELECT tk.*, tk.ROWID FROM DIGITAL_TEST.TBL_KNOWLEDGE tk")
+            
+            # Build query with optional WHERE clause
+            if added is not None:
+                cursor.execute("SELECT k.*, k.ROWID FROM DIGITAL_TEST.knowledge k WHERE ADDED = :1", [added])
+            else:
+                cursor.execute("SELECT k.*, k.ROWID FROM DIGITAL_TEST.knowledge k")
 
             # Get column names
             columns = [col[0] for col in cursor.description]
@@ -86,6 +92,7 @@ class OracleDBService:
             # Fetch and convert rows to dicts
             rows = cursor.fetchall()
             data = []
+
 
             for i, row in enumerate(rows):
                 row_dict = {}
@@ -95,7 +102,6 @@ class OracleDBService:
                     row_dict[col_name] = value
 
                 # Map Oracle columns to expected field names (case-insensitive mapping)
-                # Keep original fields but also add lowercase versions for compatibility
                 mapped_dict = dict(row_dict)  # Copy original
 
                 # Map common field names
@@ -119,6 +125,14 @@ class OracleDBService:
                         "DATE_CREATED",
                     ]:
                         mapped_dict["timestamp"] = row_dict[oracle_col]
+
+                # Always add 'added' field (lowercase) for frontend compatibility
+                if "ADDED" in mapped_dict:
+                    mapped_dict["added"] = mapped_dict["ADDED"]
+                elif "added" in mapped_dict:
+                    mapped_dict["added"] = mapped_dict["added"]
+                else:
+                    mapped_dict["added"] = None
 
                 # Add ID if not present
                 if "ID" not in mapped_dict or mapped_dict["ID"] is None:
@@ -154,7 +168,7 @@ class OracleDBService:
 
             # Delete the record by ID
             cursor.execute(
-                "DELETE FROM DIGITAL_TEST.TBL_KNOWLEDGE WHERE ID = :1", [record_id]
+                "DELETE FROM DIGITAL_TEST.knowledge WHERE ID = :1", [record_id]
             )
 
             # Commit the transaction
@@ -191,7 +205,7 @@ class OracleDBService:
 
             # Execute the query for specific ID
             cursor.execute(
-                "SELECT tk.*, tk.ROWID FROM DIGITAL_TEST.TBL_KNOWLEDGE tk WHERE ID = :1",
+                "SELECT k.*, k.ROWID FROM DIGITAL_TEST.knowledge k WHERE ID = :1",
                 [record_id],
             )
 
@@ -239,7 +253,7 @@ class OracleDBService:
             # Update ADDED column to 1
             cursor.execute(
                 """
-                UPDATE DIGITAL_TEST.TBL_KNOWLEDGE
+                UPDATE DIGITAL_TEST.knowledge
                 SET ADDED = 1
                 WHERE ID = :id
                 """,
@@ -280,7 +294,7 @@ class OracleDBService:
 
             cursor.executemany(
                 """
-                UPDATE DIGITAL_TEST.TBL_KNOWLEDGE
+                UPDATE DIGITAL_TEST.knowledge
                 SET ADDED = 1
                 WHERE ID = :id
                 """,
