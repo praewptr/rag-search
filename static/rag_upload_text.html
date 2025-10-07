@@ -31,7 +31,7 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #768999 0%, #6b7981 100%);
+            background: linear-gradient(135deg, #4f5c66 0%, #5a646a 100%);
             color: rgb(255, 251, 251);
             padding: 30px;
             text-align: center;
@@ -272,6 +272,11 @@
             font-size: 14px;
         }
 
+        .btn-danger.btn-sm {
+            font-size: 12px;
+            color: #ffb3b3;
+        }
+
         .btn-xs {
             padding: 8px 22px;
             font-size: 16px;
@@ -420,8 +425,9 @@
 
         .message.error {
             background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            color: #d90429;
+            border: 2px solid #d90429;
+            font-weight: bold;
         }
 
         .message.show {
@@ -528,15 +534,15 @@
 
             <!-- Actions -->
             <div class="actions">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <label for="indexDropdown" style="font-weight: 600;">Index:</label>
+                <div style="display: flex; flex-direction: row; align-items: center; gap: 14px; width: 100%; max-width: 900px; margin: 0 auto;">
+                    <label for="indexDropdown" style="font-weight: 600; white-space: nowrap;">Index:</label>
                     <select id="indexDropdown"
-                        style="padding: 8px 16px; border-radius: 8px; font-size: 16px; min-width: 180px;"></select>
-                    <button class="btn btn-success" onclick="uploadSelectedToAzure()" id="uploadBtn" disabled>
-                        ☁️ Upload Selected to Azure
+                        style="padding: 12px 18px; border-radius: 10px; font-size: 18px; flex: 2 1 0; min-width: 180px; max-width: 350px; width: 100%;"></select>
+                    <button class="btn btn-success" onclick="uploadSelectedToAzure()" id="uploadBtn" disabled style="flex: 2 1 0; font-size: 18px; padding: 16px 0; min-width: 180px; max-width: 350px; width: 100%;">
+                        Upload Selected to Azure
                     </button>
-                    <button class="btn btn-danger" onclick="deleteSelected()" id="deleteBtn" disabled>
-                        🗑️ Delete Selected
+                    <button class="btn btn-danger" onclick="deleteSelected()" id="deleteBtn" disabled style="flex: 2 1 0; font-size: 18px; padding: 16px 0; min-width: 180px; max-width: 350px; width: 100%;">
+                        Delete Selected
                     </button>
                 </div>
             </div>
@@ -566,15 +572,15 @@
                 <div
                     style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-xs" style="background:#fff;color:#138496;border:1.5px solid #17a2b8;"
+                    <button class="btn btn-xs" style="background:#fff;color:#138496;border:2.5px solid #17a2b8;"
                             onclick="loadDocuments()" title="Refresh Data">
                             Refresh
                         </button>
-                        <button class="btn btn-xs" style="background:#fff;color:#218838;border:1.5px solid #28a745;"
+                    <button class="btn btn-xs" style="background:#fff;color:#218838;border:2.5px solid #28a745;"
                             onclick="selectAll()" title="Select All">
                             Select All
                         </button>
-                        <button class="btn btn-xs" style="background:#fff;color:#c2185b;border:1.5px solid #c2185b;"
+                    <button class="btn btn-xs" style="background:#fff;color:#c2185b;border:2.5px solid #c2185b;"
                             onclick="deselectAll()" title="Deselect All">
                             Deselect
                         </button>
@@ -944,13 +950,24 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                }
-                const result = await response.json();
-                let showUploadMessage = false;
+                let result = null;
                 let uploadMsg = '';
+                let showUploadMessage = false;
+                let isError = false;
+                try {
+                    result = await response.json();
+                } catch (e) {
+                    isError = true;
+                }
+                if (response.status === 500) {
+                    uploadMsg = 'Something went wrong or you chose the wrong index. Please choose an index stored for text.';
+                    showMessage(uploadMsg, 'error');
+                    return;
+                }
+                if (!response.ok || isError) {
+                    showMessage((result && result.message) || 'Something went wrong or you chose the wrong index. Please choose an index stored for text.', 'error');
+                    return;
+                }
                 if (result.status === 'success' || result.uploaded_count > 0) {
                     try {
                         const documentIds = selectedDocs.map(doc => doc.ID || doc.id);
@@ -959,7 +976,6 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ document_ids: documentIds })
                         });
-                        // Always use the message from /upload-text response
                         uploadMsg = result.message || `Uploaded ${documentIds.length} text${documentIds.length > 1 ? 's' : ''} to Azure`;
                         showUploadMessage = true;
                     } catch (markError) {
@@ -972,15 +988,20 @@
                 }
                 deselectAll();
                 if (showUploadMessage) {
-                    showMessage(uploadMsg, 'success');
+                    if (result.status === 'success' || result.status === 'partial_success') {
+                        showMessage(uploadMsg, 'success');
+                    } else {
+                        showMessage(uploadMsg, 'error');
+                    }
                     await new Promise(resolve => setTimeout(resolve, 1500));
                 }
                 await loadDocuments();
             } catch (error) {
-                showMessage('Failed to upload to Azure: ' + error.message, 'error');
+                showMessage('Something went wrong or you chose the wrong index. Please choose an index stored for text.', 'error');
             } finally {
                 showLoading(false);
-                hideMessage();
+                // Do not hide message immediately; let user see error
+                // (hideMessage is now only called by showMessage after timeout)
             }
         }
 
