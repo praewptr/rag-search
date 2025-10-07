@@ -1011,8 +1011,31 @@
             showMessage('<span class="inline-spinner"></span>Uploading to Azure...', 'info');
             showLoading(true);
             try {
+<<<<<<< HEAD
+<<<<<<< HEAD
                 const selectedDocs = documents.filter(doc => selectedDocuments.has(String(doc.id)));
                 if (selectedDocs.length === 0) throw new Error('No documents found for selected IDs');
+=======
+=======
+>>>>>>> 7b4a69d2ac5eea5a074e7cd2cbf57d39a44d356a
+                // Get selected documents data - use String conversion for consistency and handle both ID fields
+                const selectedDocs = documents.filter(doc =>
+                    selectedDocuments.has(String(doc.ID || doc.id)) ||
+                    selectedDocuments.has(String(doc.id || doc.ID)) ||
+                    selectedArray.includes(String(doc.ID || doc.id)) ||
+                    selectedArray.includes(String(doc.id || doc.ID))
+                );
+
+                console.log('Uploading documents:', selectedDocs);
+                console.log('Selected IDs:', Array.from(selectedDocuments));
+                console.log('Backup Array:', selectedArray);
+
+                if (selectedDocs.length === 0) {
+                    throw new Error('No documents found for selected IDs');
+                }
+
+                // Get selected index
+>>>>>>> 7b4a69d2ac5eea5a074e7cd2cbf57d39a44d356a
                 const indexDropdown = document.getElementById('indexDropdown');
                 const selectedIndex = indexDropdown.value;
                 if (!selectedIndex) {
