@@ -9,7 +9,7 @@ from azure.search.documents.indexes.models import (
 )
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query
-
+from azure.search.documents import SearchClient
 from config import (
     azure_search_endpoint,
     azure_search_index_txt,
@@ -469,17 +469,24 @@ async def delete_document_from_index(
 
 
 @router.delete("/delete-documents-by-title/")
-async def delete_documents_by_title(
+async def delete_documents_by_title(index_name:str,
     title: str = Query(..., description="Title of the document to delete"),
 ):
     try:
         # Step 1: Find documents with matching title
-        results = search_client_pdf.search(
+        search_client = SearchClient(
+            endpoint=azure_search_endpoint,
+            index_name=index_name,
+            credential=AzureKeyCredential(azure_search_key),
+        )
+
+        results = search_client.search(
             search_text=title,
             select=["text_parent_id", "title", "image_parent_id"],
             top=100,
         )
 
+      
         parent_ids = set()
         for doc in results:
             if doc.get("title") == title and doc.get("text_parent_id"):
@@ -494,24 +501,32 @@ async def delete_documents_by_title(
         documents_to_delete = []
 
         for target_text_parent_id in parent_ids:
-            # Step 2: Get all docs with matching text_parent_id or image_parent_id
-            results_text = search_client_pdf.search(
-                search_text="*", filter=f"text_parent_id eq '{target_text_parent_id}'"
+            # Step 2: Get all docs with matching text_parent_id or image_parent_id (select all fields)
+            results_text = search_client.search(
+                search_text="*", filter=f"text_parent_id eq '{target_text_parent_id}'", select=["*"]
             )
-            results_image = search_client_pdf.search(
-                search_text="*", filter=f"image_parent_id eq '{target_text_parent_id}'"
+            results_image = search_client.search(
+                search_text="*", filter=f"image_parent_id eq '{target_text_parent_id}'", select=["*"]
             )
 
-            # Step 3: Collect chunk_ids
+            # Step 3: Collect chunk_ids, with debug logging
             for doc in results_text:
-                documents_to_delete.append({"chunk_id": doc["chunk_id"]})
+                logger.warning(f"results_text doc keys: {list(doc.keys())}")
+                if "chunk_id" in doc:
+                    documents_to_delete.append({"chunk_id": doc["chunk_id"]})
+                else:
+                    logger.error(f"No chunk_id in doc: {doc}")
 
             for doc in results_image:
-                documents_to_delete.append({"chunk_id": doc["chunk_id"]})
+                logger.warning(f"results_image doc keys: {list(doc.keys())}")
+                if "chunk_id" in doc:
+                    documents_to_delete.append({"chunk_id": doc["chunk_id"]})
+                else:
+                    logger.error(f"No chunk_id in doc: {doc}")
 
         # Step 4: Delete
         if documents_to_delete:
-            search_client_pdf.delete_documents(documents=documents_to_delete)
+            search_client.delete_documents(documents=documents_to_delete)
             total_deleted = len(documents_to_delete)
         else:
             raise HTTPException(status_code=404, detail="No documents found to delete.")
