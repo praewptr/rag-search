@@ -1034,9 +1034,12 @@
             showLoading(true);
 
             try {
-                // Get selected documents data - use String conversion for consistency
+                // Get selected documents data - use String conversion for consistency and handle both ID fields
                 const selectedDocs = documents.filter(doc =>
-                    selectedDocuments.has(String(doc.id)) || selectedArray.includes(String(doc.id))
+                    selectedDocuments.has(String(doc.ID || doc.id)) ||
+                    selectedDocuments.has(String(doc.id || doc.ID)) ||
+                    selectedArray.includes(String(doc.ID || doc.id)) ||
+                    selectedArray.includes(String(doc.id || doc.ID))
                 );
 
                 console.log('Uploading documents:', selectedDocs);
