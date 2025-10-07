@@ -1,16 +1,16 @@
 import json
 
-from openai import AzureOpenAI
 from azure.search.documents.models import VectorizedQuery
+from openai import AzureOpenAI
+
 from config import (
     azure_oai_deployment,
     azure_search_endpoint,
     azure_search_index_doc,
+    azure_search_index_txt,
     azure_search_key,
-    azure_search_index_txt
 )
-from services.client import embeddings,search_client_text,search_client_pdf
-import asyncio
+from services.client import embeddings, search_client_pdf, search_client_text
 
 extension_config = dict(
     dataSources=[
@@ -19,7 +19,7 @@ extension_config = dict(
             "parameters": {
                 "endpoint": azure_search_endpoint,
                 "key": azure_search_key,
-                "indexName": azure_search_index_doc,  
+                "indexName": azure_search_index_doc,
             },
             "fields_mapping": {
                 "content_field": "chunk",
@@ -34,7 +34,7 @@ extension_config = dict(
             "parameters": {
                 "endpoint": azure_search_endpoint,
                 "key": azure_search_key,
-                "indexName": azure_search_index_txt,  
+                "indexName": azure_search_index_txt,
             },
             "fields_mapping": {
                 "content_field": "content",
@@ -43,7 +43,7 @@ extension_config = dict(
                 "url_field": "",
                 "vector_field": "text_vector",
             },
-        }
+        },
     ]
 )
 
@@ -110,19 +110,20 @@ def get_response(
 
     return answer, citations
 
+
 def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
     """Gets a final answer from the LLM based on the query and retrieved context."""
-    
+
     # If no context or empty context, return None to indicate no answer
     if not context or context.strip() == "":
         return None
-        
+
     system_prompt = """
     You are a helpful AI assistant. Answer the user's question based ONLY on the provided information.
     If the information is not sufficient to answer the question, respond with "NO_ANSWER_FOUND".
     Be concise and professional. Do not cite the source file for the information you use.
     """
-    
+
     user_prompt = f"""
     CONTEXT:
     ---
@@ -132,7 +133,7 @@ def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
     
     ANSWER:
     """
-    
+
     try:
         response = openai_client.chat.completions.create(
             model=azure_oai_deployment,
@@ -143,55 +144,64 @@ def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
             temperature=0.1,
             max_tokens=500,
         )
-        
+
         answer = response.choices[0].message.content.strip()
-        
+
         # Check if LLM indicates no answer found
         if "NO_ANSWER_FOUND" in answer or not answer:
-            return None
-            
+            return []
+
         return answer
-        
+
     except Exception as e:
         print(f"Error calling LLM: {e}")
         return None
 
 
-
-def rag_pipeline(question:str):
+def rag_pipeline(question: str):
     question_emb = embeddings.embed_query(question)
-    vector_query_text = VectorizedQuery(vector=question_emb, k_nearest_neighbors=3, fields="text_vector")
-    vector_query_pdf = VectorizedQuery(vector=question_emb, k_nearest_neighbors=3, fields="text_vector")
+    vector_query_text = VectorizedQuery(
+        vector=question_emb, k_nearest_neighbors=3, fields="text_vector"
+    )
+    vector_query_pdf = VectorizedQuery(
+        vector=question_emb, k_nearest_neighbors=3, fields="text_vector"
+    )
     combined_results = []
     SCORE_THRESHOLD = 0.55
     try:
         # Run the search on the text index and wait for it to complete
-        text_results = search_client_text.search(search_text=None, vector_queries=[vector_query_text])
-        
+        text_results = search_client_text.search(
+            search_text=None, vector_queries=[vector_query_text]
+        )
+
         # Process results from the text index using a standard 'for' loop
         for result in text_results:
-            combined_results.append({
-                "score": result['@search.score'],
-                "content": result['content']
-            })
-            
+            combined_results.append(
+                {"score": result["@search.score"], "content": result["content"]}
+            )
+
         # Now, run the search on the PDF index and wait for it to complete
-        pdf_results = search_client_pdf.search(search_text=None, vector_queries=[vector_query_pdf])
-        
+        pdf_results = search_client_pdf.search(
+            search_text=None, vector_queries=[vector_query_pdf]
+        )
+
         # Process results from the PDF index
         for result in pdf_results:
-            combined_results.append({
-                "score": result['@search.score'],
-                "content": result['chunk']
-            })
-            
-        sorted_results = sorted(combined_results, key=lambda x: x['score'], reverse=True)
-        top_results = [res for res in sorted_results if res['score'] >= SCORE_THRESHOLD][:5]
-        
+            combined_results.append(
+                {"score": result["@search.score"], "content": result["chunk"]}
+            )
+
+        sorted_results = sorted(
+            combined_results, key=lambda x: x["score"], reverse=True
+        )
+        top_results = [
+            res for res in sorted_results if res["score"] >= SCORE_THRESHOLD
+        ][:5]
+
         # If no results meet the threshold, return None
         if not top_results:
             return None
-            
+
         context_for_llm = ""
         for i, result in enumerate(top_results):
             context_for_llm += f"Content: {result['content']}\n\n"

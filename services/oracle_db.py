@@ -238,7 +238,12 @@ class OracleDBService:
 
             # Update ADDED column to 1
             cursor.execute(
-                "UPDATE KNOWLEDGE_DATA SET ADDED = 1 WHERE ID = :id", {"id": record_id}
+                """
+                UPDATE DIGITAL_TEST.TBL_KNOWLEDGE
+                SET ADDED = 1
+                WHERE ID = :id
+                """,
+                {"id": record_id},
             )
 
             # Check if any rows were updated
@@ -274,7 +279,12 @@ class OracleDBService:
             update_data = [{"id": record_id} for record_id in record_ids]
 
             cursor.executemany(
-                "UPDATE KNOWLEDGE_DATA SET ADDED = 1 WHERE ID = :id", update_data
+                """
+                UPDATE DIGITAL_TEST.TBL_KNOWLEDGE
+                SET ADDED = 1
+                WHERE ID = :id
+                """,
+                update_data,
             )
 
             rows_updated = cursor.rowcount

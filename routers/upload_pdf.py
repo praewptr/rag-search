@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List
 
@@ -52,7 +53,13 @@ async def upload_server_doc(
     """
     Upload a file from the server folder to Azure Blob Storage.
     """
-    DOCUMENTS_PATH = Path("C:/Users/PANTHIRA/mock_folder")
+
+    DOCUMENTS_PATH = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__), "../../../storage/app/public/chat_files"
+        )
+    )
+    # DOCUMENTS_PATH = Path("C:/Users/PANTHIRA/mock_folder")
     file_path = DOCUMENTS_PATH / filename
     upload_name = target_filename if target_filename else filename
     if not file_path.exists() or not file_path.is_file():
