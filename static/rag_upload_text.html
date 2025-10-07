@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text Data Manager</title>
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,7 +15,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', 'Inter', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             min-height: 100vh;
             padding: 20px;
@@ -29,8 +31,8 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
-            color: white;
+            background: linear-gradient(135deg, #768999 0%, #6b7981 100%);
+            color: rgb(255, 251, 251);
             padding: 30px;
             text-align: center;
         }
@@ -38,7 +40,7 @@
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            /* text-shadow removed for cleaner look */
         }
 
         .header p {
@@ -116,18 +118,20 @@
 
 
         .btn-primary {
-            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            background: linear-gradient(135deg, #7b8793 0%, #919da8 100%);
             color: white;
         }
 
         .btn-success {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
+            font-weight: 400;
         }
 
         .btn-danger {
             background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
             color: white;
+            font-weight: 400;
         }
 
         .btn-info {
@@ -154,11 +158,12 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            color: white;
+            background: #fff;
+            color: rgb(65, 64, 64);
             padding: 20px;
             border-radius: 15px;
             text-align: center;
+            border: 2px solid #6d7b87;
         }
 
         .stat-number {
@@ -273,6 +278,7 @@
             border-radius: 8px;
             box-shadow: none;
             transition: background 0.2s, color 0.2s;
+            font-weight: 400;
         }
 
 
@@ -510,7 +516,7 @@
             <div style="text-align:left; margin-bottom: 10px;">
                 <a href="/static/dashboard.html" class="back-btn">← Back to Dashboard</a>
             </div>
-            <h1>🚀 Text Data Manager</h1>
+            <h1>Text Data Manager</h1>
             <p>Manage text from database before uploading to Azure AI Search</p>
         </div>
 
