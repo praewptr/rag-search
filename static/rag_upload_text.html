@@ -596,6 +596,7 @@
             console.log('Initialized selectedDocuments Set:', selectedDocuments);
             console.log('Initialized selectedArray:', selectedArray);
             loadAvailableIndexes();
+            loadDocuments(); // Load documents on page load
         });
 
         // Test function to verify Set is working
@@ -612,23 +613,41 @@
             return testSet;
         }
 
-        async function loadDocuments() {
+        async function loadDocuments(status = 'all') {
             showLoading(true);
             hideMessage();
 
             try {
-                const response = await fetch('/rag-upload-text/text');
+                console.log(`Loading documents with status: ${status}`);
+                const response = await fetch(`/rag-upload-text/text?status=${status}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
+                console.log('Received data:', data);
                 documents = data.value || [];
-                filteredDocuments = [...documents]; // Initialize filtered documents
+                // Set filteredDocuments based on status
+                if (status === 'all') {
+                    filteredDocuments = [...documents];
+                } else if (status === 'uploaded') {
+                    filteredDocuments = documents.filter(doc => doc.added === 1 || doc.added === '1');
+                } else if (status === 'pending') {
+                    filteredDocuments = documents.filter(doc => doc.added !== 1 && doc.added !== '1');
+                } else {
+                    filteredDocuments = [...documents];
+                }
 
+                console.log(`Loaded ${filteredDocuments.length} filtered documents for status "${status}"`);
                 renderDocuments();
                 updateStats();
-                showMessage('Documents loaded successfully!', 'success');
+                
+                if (filteredDocuments.length === 0) {
+                    showMessage(`No documents found for filter: ${status}`, 'info');
+                } else {
+                    // Only show a short message for loading, not after upload
+                    showMessage(`${filteredDocuments.length} document${filteredDocuments.length > 1 ? 's' : ''} found for filter: ${status}`, 'success');
+                }
             } catch (error) {
                 console.error('Error loading documents:', error);
                 showMessage('Failed to load documents: ' + error.message, 'error');
@@ -642,22 +661,11 @@
 
         function filterDocuments() {
             const filterValue = document.getElementById('statusFilter').value;
-
-            switch (filterValue) {
-                case 'uploaded':
-                    filteredDocuments = documents.filter(doc => doc.added === 1);
-                    break;
-                case 'pending':
-                    filteredDocuments = documents.filter(doc => doc.added === 0);
-                    break;
-                default: // 'all'
-                    filteredDocuments = [...documents];
-                    break;
-            }
-
-            console.log(`Filtered documents for "${filterValue}":`, filteredDocuments.length);
-            renderDocuments();
-            updateStats();
+            
+            // Load documents with the selected filter from the server
+            loadDocuments(filterValue);
+            
+            console.log(`Loading documents with filter: "${filterValue}"`);
         }
         function validateIndexName(indexName) {
             if (!indexName || indexName.length < 2 || indexName.length > 60) {
@@ -803,8 +811,18 @@
             filteredDocuments.forEach(doc => {
                 const docId = String(doc.ID || doc.id); // Handle both ID and id fields
                 const isSelected = selectedDocuments.has(docId) || selectedArray.includes(docId);
-                const status = doc.added === 1 ? 'uploaded' : 'pending';
-                const statusText = doc.added === 1 ? 'Uploaded' : 'Pending';
+                let status, statusText;
+                if (doc.added === 1 || doc.added === '1') {
+                    status = 'uploaded';
+                    statusText = 'Uploaded';
+                } else if (doc.added === 0 || doc.added === '0' || doc.added === undefined || doc.added === null) {
+                    status = 'pending';
+                    statusText = 'Pending';
+                } else {
+                    // fallback for any unexpected value
+                    status = String(doc.added).toLowerCase() === 'uploaded' ? 'uploaded' : 'pending';
+                    statusText = status.charAt(0).toUpperCase() + status.slice(1);
+                }
 
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'document-card';
@@ -1088,6 +1106,9 @@
                 console.log('Upload result:', result);
 
                 // If upload was successful, mark documents as uploaded in database
+
+                let showUploadMessage = false;
+                let uploadMsg = '';
                 if (result.status === 'success' || result.uploaded_count > 0) {
                     try {
                         // Get document IDs that were successfully uploaded
@@ -1108,21 +1129,31 @@
                         if (markResponse.ok) {
                             const markResult = await markResponse.json();
                             console.log('Mark uploaded result:', markResult);
-                            showMessage(`${result.message} และอัปเดตสถานะในฐานข้อมูลเรียบร้อย (${markResult.updated_count} รายการ)`, 'success');
+                            uploadMsg = `Uploaded ${documentIds.length} text${documentIds.length > 1 ? 's' : ''} to Azure`;
+                            showUploadMessage = true;
                         } else {
                             console.warn('Failed to mark documents as uploaded in database');
-                            showMessage(`${result.message} แต่ไม่สามารถอัปเดตสถานะในฐานข้อมูลได้`, 'success');
+                            uploadMsg = `Uploaded ${documentIds.length} text${documentIds.length > 1 ? 's' : ''} to Azure, but failed to update status in database`;
+                            showUploadMessage = true;
                         }
                     } catch (markError) {
                         console.error('Error marking documents as uploaded:', markError);
-                        showMessage(`${result.message} แต่เกิดข้อผิดพลาดในการอัปเดตสถานะ`, 'success');
+                        uploadMsg = `Uploaded to Azure, but error updating status`;
+                        showUploadMessage = true;
                     }
                 } else {
-                    showMessage(`${result.message} (${result.uploaded_count || result.successful_uploads || selectedDocs.length} documents)`, 'error');
+                    uploadMsg = `${result.message} (${result.uploaded_count || result.successful_uploads || selectedDocs.length} documents)`;
+                    showUploadMessage = true;
                 }
 
                 // Clear selection and reload documents to reflect status changes
                 deselectAll();
+
+                if (showUploadMessage) {
+                    showMessage(uploadMsg, 'success');
+                    // Wait 1.5 seconds before reloading documents so user can see the message
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                }
                 await loadDocuments(); // Reload to show updated status
 
             } catch (error) {
