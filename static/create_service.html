@@ -4,8 +4,54 @@
 <head>
     <meta charset="UTF-8">
     <title>Azure Search - Create Service</title>
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        .refresh-btn {
+            background: #d6dde3;
+            color: #17a2b8;
+            border: 1.5px solid #d4dede;
+            padding: 8px 18px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: none;
+            box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-top: 0px;
+        }
+        .refresh-btn:hover {
+            background: #f8f9fa;
+            border-color: #17a2b8;
+            color: #138496;
+        }
+        .refresh-btn:active {
+            background: #e9ecef;
+        }
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .refresh-svg {
+            transition: transform 0.3s ease;
+        }
+        .refresh-btn:hover .refresh-svg {
+            transform: rotate(-30deg);
+        }
+        .refresh-btn.spinning .refresh-svg {
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
         * {
             margin: 0;
             padding: 0;
@@ -13,21 +59,64 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', 'Noto Sans Thai', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             background: #f8f9fa;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             overflow: hidden;
-            padding: 40px 32px;
         }
+        
+        .header {
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-top: 6px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 12px 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn:hover {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
 
         h2 {
             font-size: 2.5em;
@@ -189,6 +278,29 @@
             transform: translateY(-1px);
         }
 
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+            color: white;
+            padding: 12px 24px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .back-btn:hover {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
         .result {
             margin-top: 15px;
             padding: 10px;
@@ -197,16 +309,24 @@
             border-left: 4px solid #17a2b8;
             min-height: 20px;
         }
+
+        .content {
+            padding: 30px;
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h2>Azure Search Services</h2>
-
-        <!-- Text Service Section -->
-        <div
-            style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #28a745;">
+        <div class="header" style="position: relative;">
+           <a href="/static/dashboard.html" class="back-btn" id="backToDashboardBtn" style="position: absolute; left: 30px; top: 30px; margin: 0;">← Back to Dashboard</a>
+            <h1 style="margin-top: 70px; margin-bottom: 0;">Create Service</h1>
+            <p style="margin-top: 6px;">Manage text from database before uploading to Azure AI Search</p>
+        </div>
+        <div class="content">
+            <!-- Text Service Section -->
+            <div
+                style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%); padding: 25px; border-radius: 15px; margin-bottom: 30px; border: 2px solid #28a745; box-shadow: 0 5px 15px rgba(40, 167, 69, 0.1);">
             <h3 style="color: #28a745; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <i class="fa fa-file-text"></i> Text Service
             </h3>
@@ -217,8 +337,14 @@
             <div class="block" style="background: white; border: 1px solid #c3e6cb;">
                 <div class="block-title">
                     <h3><i class="fa fa-plus-circle"></i> Create Text Index</h3>
-                    <button class="icon-btn" id="refreshTextIndexBtn" title="Refresh"><i
-                            class="fa fa-sync"></i></button>
+                    <button class="refresh-btn" id="refreshTextIndexBtn" title="Refresh" aria-label="Refresh">
+                        <svg class="refresh-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m16 8 5 0 0-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m8 16-5 0 0 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
 
                 <div class="row">
@@ -246,9 +372,9 @@
             </div>
         </div>
 
-        <!-- Document Service Section -->
-        <div
-            style="background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #007bff;">
+            <!-- Document Service Section -->
+            <div
+                style="background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%); padding: 25px; border-radius: 15px; margin-bottom: 30px; border: 2px solid #007bff; box-shadow: 0 5px 15px rgba(0, 123, 255, 0.1);">
             <h3 style="color: #007bff; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <i class="fa fa-file-pdf"></i> Document Service
             </h3>
@@ -259,8 +385,14 @@
             <div class="block" id="datasourceBlock" style="background: white; border: 1px solid #b3d9ff;">
                 <div class="block-title">
                     <h3><i class="fa fa-database"></i> Data Source</h3>
-                    <button class="icon-btn" id="refreshDatasourceBtn" title="Refresh"><i
-                            class="fa fa-sync"></i></button>
+                    <button class="refresh-btn" id="refreshDatasourceBtn" title="Refresh" aria-label="Refresh">
+                        <svg class="refresh-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m16 8 5 0 0-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m8 16-5 0 0 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
                 <label for="dsName">Name</label>
                 <input type="text" id="dsName" placeholder="Data source name">
@@ -274,7 +406,14 @@
             <div class="block" id="pdfIndexBlock" style="background: white; border: 1px solid #b3d9ff;">
                 <div class="block-title">
                     <h3><i class="fa fa-file-pdf"></i> PDF Index</h3>
-                    <button class="icon-btn" id="refreshPdfIndexBtn" title="Refresh"><i class="fa fa-sync"></i></button>
+                    <button class="refresh-btn" id="refreshPdfIndexBtn" title="Refresh" aria-label="Refresh">
+                        <svg class="refresh-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m16 8 5 0 0-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m8 16-5 0 0 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="row">
                     <div>
@@ -297,7 +436,14 @@
             <div class="block" id="skillsetBlock" style="background: white; border: 1px solid #b3d9ff;">
                 <div class="block-title">
                     <h3><i class="fa fa-magic"></i> Skillset</h3>
-                    <button class="icon-btn" id="refreshSkillsetBtn" title="Refresh"><i class="fa fa-sync"></i></button>
+                    <button class="refresh-btn" id="refreshSkillsetBtn" title="Refresh" aria-label="Refresh">
+                        <svg class="refresh-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m16 8 5 0 0-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m8 16-5 0 0 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="row">
                     <div>
@@ -328,7 +474,14 @@
             <div class="block" id="indexerBlock" style="background: white; border: 1px solid #b3d9ff;">
                 <div class="block-title">
                     <h3><i class="fa fa-cogs"></i> Indexer</h3>
-                    <button class="icon-btn" id="refreshIndexerBtn" title="Refresh"><i class="fa fa-sync"></i></button>
+                    <button class="refresh-btn" id="refreshIndexerBtn" title="Refresh" aria-label="Refresh">
+                        <svg class="refresh-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m16 8 5 0 0-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="m8 16-5 0 0 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="row">
                     <div>
@@ -352,7 +505,8 @@
                 <div class="result" id="indexerResult"></div>
             </div>
         </div>
-        <!-- End Document Service Section -->
+            <!-- End Document Service Section -->
+        </div>
     </div>
     <script>
         async function loadDropdown(endpoint, selectId) {
