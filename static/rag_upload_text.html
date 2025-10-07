@@ -385,11 +385,25 @@
             }
         }
 
+
         .message {
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
             display: none;
+            position: relative;
+        }
+
+        .message .inline-spinner {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            border: 3px solid #b3d7f5;
+            border-top: 3px solid #1766a3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
         .message.success {
@@ -533,11 +547,6 @@
                 </div>
             </div>
 
-            <!-- Loading -->
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Loading documents...</p>
-            </div>
 
             <!-- Documents Section Header -->
             <div style="margin-bottom: 20px;">
@@ -585,49 +594,22 @@
 
     <script>
         let documents = [];
-        let filteredDocuments = []; // For filtered display
+        let filteredDocuments = [];
         let selectedDocuments = new Set();
-        let selectedArray = []; // Backup array for debugging
 
-        // Force a fresh Set on page load
         window.addEventListener('DOMContentLoaded', function () {
-            selectedDocuments = new Set(); // Reset the Set
-            selectedArray = []; // Reset the array
-            console.log('Initialized selectedDocuments Set:', selectedDocuments);
-            console.log('Initialized selectedArray:', selectedArray);
+            selectedDocuments = new Set();
             loadAvailableIndexes();
-            loadDocuments(); // Load documents on page load
         });
-
-        // Test function to verify Set is working
-        function testSet() {
-            console.log('Testing Set functionality...');
-            const testSet = new Set();
-            testSet.add('1');
-            testSet.add('2');
-            console.log('Test Set:', Array.from(testSet));
-            console.log('testSet.has("1"):', testSet.has('1'));
-            console.log('testSet.has("2"):', testSet.has('2'));
-
-            console.log('Current selectedDocuments:', Array.from(selectedDocuments));
-            return testSet;
-        }
 
         async function loadDocuments(status = 'all') {
             showLoading(true);
-            hideMessage();
-
+            showMessage('<span class="inline-spinner"></span>Loading documents...', 'info');
             try {
-                console.log(`Loading documents with status: ${status}`);
                 const response = await fetch(`/rag-upload-text/text?status=${status}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                console.log('Received data:', data);
                 documents = data.value || [];
-                // Set filteredDocuments based on status
                 if (status === 'all') {
                     filteredDocuments = [...documents];
                 } else if (status === 'uploaded') {
@@ -637,35 +619,25 @@
                 } else {
                     filteredDocuments = [...documents];
                 }
-
-                console.log(`Loaded ${filteredDocuments.length} filtered documents for status "${status}"`);
                 renderDocuments();
                 updateStats();
-                
                 if (filteredDocuments.length === 0) {
                     showMessage(`No documents found for filter: ${status}`, 'info');
-                } else {
-                    // Only show a short message for loading, not after upload
-                    showMessage(`${filteredDocuments.length} document${filteredDocuments.length > 1 ? 's' : ''} found for filter: ${status}`, 'success');
                 }
             } catch (error) {
-                console.error('Error loading documents:', error);
                 showMessage('Failed to load documents: ' + error.message, 'error');
                 documents = [];
                 filteredDocuments = [];
                 renderDocuments();
             } finally {
                 showLoading(false);
+                hideMessage();
             }
         }
 
         function filterDocuments() {
             const filterValue = document.getElementById('statusFilter').value;
-            
-            // Load documents with the selected filter from the server
             loadDocuments(filterValue);
-            
-            console.log(`Loading documents with filter: "${filterValue}"`);
         }
         function validateIndexName(indexName) {
             if (!indexName || indexName.length < 2 || indexName.length > 60) {
@@ -724,16 +696,7 @@
         }
 
         function showLoading(show) {
-            const loading = document.getElementById('loading');
-            const grid = document.getElementById('resultsGrid');
-
-            if (show) {
-                loading.classList.add('active');
-                grid.style.display = 'none';
-            } else {
-                loading.classList.remove('active');
-                grid.style.display = 'grid';
-            }
+            // No-op: loading banner is now handled by showMessage/hideMessage
         }
 
         async function createIndex() {
@@ -807,30 +770,21 @@
             // Clear existing content first
             grid.innerHTML = '';
 
-            // Create each card individually with proper event listeners
             filteredDocuments.forEach(doc => {
-                const docId = String(doc.ID || doc.id); // Handle both ID and id fields
-                const isSelected = selectedDocuments.has(docId) || selectedArray.includes(docId);
+                const docId = String(doc.ID || doc.id);
+                const isSelected = selectedDocuments.has(docId);
                 let status, statusText;
                 if (doc.added === 1 || doc.added === '1') {
                     status = 'uploaded';
                     statusText = 'Uploaded';
-                } else if (doc.added === 0 || doc.added === '0' || doc.added === undefined || doc.added === null) {
+                } else {
                     status = 'pending';
                     statusText = 'Pending';
-                } else {
-                    // fallback for any unexpected value
-                    status = String(doc.added).toLowerCase() === 'uploaded' ? 'uploaded' : 'pending';
-                    statusText = status.charAt(0).toUpperCase() + status.slice(1);
                 }
-
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'document-card';
-                if (isSelected) {
-                    cardDiv.classList.add('selected');
-                }
-                cardDiv.id = `doc-${doc.ID || doc.id}`;
-
+                if (isSelected) cardDiv.classList.add('selected');
+                cardDiv.id = `doc-${docId}`;
                 cardDiv.innerHTML = `
                     <div class="document-main-content ${isSelected ? '' : 'no-selection'}">
                         <div class="document-info">
@@ -848,138 +802,75 @@
                         </div>
                     </div>
                     <div class="document-actions">
-                        <button class="btn btn-danger btn-sm" title="Delete document">
-                            🗑️
-                        </button>
+                        <button class="btn btn-danger btn-sm" title="Delete document">🗑️</button>
                     </div>
                 `;
-
-                // Individual card selection: toggle only the clicked card
                 cardDiv.addEventListener('click', function (event) {
-                    // Ignore if click is on delete button
                     if (event.target.closest('.btn-danger')) return;
-
-                    const id = String(doc.ID || doc.id); // Handle both ID and id fields
-                    console.log('Clicking card with ID:', id);
-
-                    if (selectedDocuments.has(id)) {
-                        // Remove from selection
-                        selectedDocuments.delete(id);
-                        const arrIdx = selectedArray.indexOf(id);
-                        if (arrIdx !== -1) selectedArray.splice(arrIdx, 1);
-
+                    if (selectedDocuments.has(docId)) {
+                        selectedDocuments.delete(docId);
                         this.classList.remove('selected');
                         const mainContent = this.querySelector('.document-main-content');
                         if (mainContent) mainContent.classList.add('no-selection');
-                        console.log('Deselected:', id);
                     } else {
-                        // Add to selection
-                        selectedDocuments.add(id);
-                        if (!selectedArray.includes(id)) selectedArray.push(id);
-
+                        selectedDocuments.add(docId);
                         this.classList.add('selected');
                         const mainContent = this.querySelector('.document-main-content');
                         if (mainContent) mainContent.classList.remove('no-selection');
-                        console.log('Selected:', id);
                     }
-
-                    console.log('After toggle - Set size:', selectedDocuments.size, 'Array length:', selectedArray.length);
-                    console.log('Set contents:', Array.from(selectedDocuments));
-                    console.log('Array contents:', selectedArray);
-
                     updateStats();
                     updateButtons();
                 });
-
-                // Add click event listener to delete button
                 const deleteBtn = cardDiv.querySelector('.btn-danger');
                 deleteBtn.addEventListener('click', function (event) {
                     event.stopPropagation();
-                    deleteDocument(doc.ID || doc.id); // Handle both ID and id fields
+                    deleteDocument(docId);
                 });
-
                 grid.appendChild(cardDiv);
             });
-
-            // Update stats and buttons after rendering
             updateStats();
             updateButtons();
         }
 
         function selectAll() {
-            selectedDocuments.clear(); // Clear first to ensure clean state
-            selectedArray.length = 0; // Clear backup array
-
+            selectedDocuments.clear();
             filteredDocuments.forEach(doc => {
-                const docId = String(doc.ID || doc.id); // Handle both ID and id fields
-                selectedDocuments.add(docId); // Ensure string type
-                selectedArray.push(docId); // Add to backup array
+                const docId = String(doc.ID || doc.id);
+                selectedDocuments.add(docId);
             });
-
-            console.log('Select all - total selected in Set:', selectedDocuments.size);
-            console.log('Select all - total selected in Array:', selectedArray.length);
-            renderDocuments(); // Re-render to ensure consistent state
-            updateStats();
-            updateButtons();
+            renderDocuments();
         }
 
         function deselectAll() {
             selectedDocuments.clear();
-            selectedArray.length = 0; // Clear backup array
-            console.log('Deselect all - cleared both Set and Array');
-            renderDocuments(); // Re-render to ensure consistent state
-            updateStats();
-            updateButtons();
+            renderDocuments();
         }
 
         function updateStats() {
             const selectedCount = selectedDocuments.size;
-            console.log('updateStats called - selectedDocuments.size:', selectedCount);
-            console.log('selectedDocuments contents:', Array.from(selectedDocuments));
-            console.log('selectedArray contents (backup):', selectedArray);
-
-            // Show filtered count vs total count
             const totalText = filteredDocuments.length === documents.length
                 ? documents.length
                 : `${filteredDocuments.length} / ${documents.length}`;
-
             document.getElementById('totalDocs').textContent = totalText;
             document.getElementById('selectedDocs').textContent = selectedCount;
-            console.log('Updated totalDocs display to:', totalText);
-            console.log('Updated selectedDocs display to:', selectedCount);
         }
 
         function updateButtons() {
             const hasSelection = selectedDocuments.size > 0;
             document.getElementById('uploadBtn').disabled = !hasSelection;
             document.getElementById('deleteBtn').disabled = !hasSelection;
-            console.log('Buttons updated - hasSelection:', hasSelection, 'count:', selectedDocuments.size);
         }
 
         async function deleteDocument(docId) {
-            if (!confirm('Are you sure you want to delete this document?')) {
-                return;
-            }
-
+            if (!confirm('Are you sure you want to delete this document?')) return;
             showLoading(true);
-
             try {
-                const response = await fetch(`/rag-upload-text/text/${docId}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                // Remove from selected documents
+                const response = await fetch(`/rag-upload-text/text/${docId}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 selectedDocuments.delete(String(docId));
-
-                // Reload documents
                 await loadDocuments();
                 showMessage('Document deleted successfully!', 'success');
             } catch (error) {
-                console.error('Error deleting document:', error);
                 showMessage('Failed to delete document: ' + error.message, 'error');
             } finally {
                 showLoading(false);
@@ -987,93 +878,53 @@
         }
 
         async function deleteSelected() {
-            if (selectedDocuments.size === 0 && selectedArray.length === 0) {
+            if (selectedDocuments.size === 0) {
                 showMessage('Please select documents to delete', 'error');
                 return;
             }
-
-            const deleteCount = Math.max(selectedDocuments.size, selectedArray.length);
-            if (!confirm(`Are you sure you want to delete ${deleteCount} selected documents?`)) {
-                return;
-            }
-
-            console.log('Starting bulk delete for:', Array.from(selectedDocuments));
-            console.log('Backup array:', selectedArray);
-
+            const deleteCount = selectedDocuments.size;
+            if (!confirm(`Are you sure you want to delete ${deleteCount} selected documents?`)) return;
             showLoading(true);
             let successCount = 0;
             let errorCount = 0;
-
-            // Use Set if it has items, otherwise use backup array
-            const idsToDelete = selectedDocuments.size > 0 ? selectedDocuments : new Set(selectedArray);
-
-            for (const docId of idsToDelete) {
+            for (const docId of selectedDocuments) {
                 try {
-                    console.log(`Deleting document: ${docId}`);
-                    const response = await fetch(`/rag-upload-text/text/${docId}`, {
-                        method: 'DELETE'
-                    });
-
+                    const response = await fetch(`/rag-upload-text/text/${docId}`, { method: 'DELETE' });
                     if (response.ok) {
                         successCount++;
-                        console.log(`Successfully deleted: ${docId}`);
                     } else {
                         errorCount++;
-                        console.error(`Failed to delete: ${docId}, status: ${response.status}`);
                     }
                 } catch (error) {
-                    console.error(`Error deleting document ${docId}:`, error);
                     errorCount++;
                 }
             }
-
-            // Clear both tracking mechanisms
             selectedDocuments.clear();
-            selectedArray.length = 0;
-
             await loadDocuments();
-
             if (errorCount === 0) {
                 showMessage(`Successfully deleted ${successCount} documents!`, 'success');
             } else {
                 showMessage(`Deleted ${successCount} documents, ${errorCount} failed`, 'error');
             }
-
             showLoading(false);
-            console.log('Bulk delete completed');
         }
 
         async function uploadSelectedToAzure() {
-            if (selectedDocuments.size === 0 && selectedArray.length === 0) {
+            if (selectedDocuments.size === 0) {
                 showMessage('Please select documents to upload', 'error');
                 return;
             }
-
+            showMessage('<span class="inline-spinner"></span>Uploading to Azure...', 'info');
             showLoading(true);
-
             try {
-                // Get selected documents data - use String conversion for consistency
-                const selectedDocs = documents.filter(doc =>
-                    selectedDocuments.has(String(doc.id)) || selectedArray.includes(String(doc.id))
-                );
-
-                console.log('Uploading documents:', selectedDocs);
-                console.log('Selected IDs:', Array.from(selectedDocuments));
-                console.log('Backup Array:', selectedArray);
-
-                if (selectedDocs.length === 0) {
-                    throw new Error('No documents found for selected IDs');
-                }
-
-                // Get selected index
+                const selectedDocs = documents.filter(doc => selectedDocuments.has(String(doc.id)));
+                if (selectedDocs.length === 0) throw new Error('No documents found for selected IDs');
                 const indexDropdown = document.getElementById('indexDropdown');
                 const selectedIndex = indexDropdown.value;
                 if (!selectedIndex) {
                     showMessage('Please select an Index before uploading.', 'error');
                     return;
                 }
-
-                // Prepare the payload to match the API expectations
                 const payload = {
                     index: selectedIndex,
                     value: selectedDocs.map(doc => ({
@@ -1082,105 +933,65 @@
                         timestamp: doc.timestamp || new Date().toISOString()
                     }))
                 };
-
-                console.log('Payload being sent:', JSON.stringify(payload, null, 2));
-
                 const response = await fetch('/rag-upload-text/upload-text', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('Upload error response:', errorText);
                     throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                 }
-
                 const result = await response.json();
-                console.log('Upload result:', result);
-
-                // If upload was successful, mark documents as uploaded in database
-
                 let showUploadMessage = false;
                 let uploadMsg = '';
                 if (result.status === 'success' || result.uploaded_count > 0) {
                     try {
-                        // Get document IDs that were successfully uploaded
                         const documentIds = selectedDocs.map(doc => doc.ID || doc.id);
-
-                        console.log('Marking documents as uploaded:', documentIds);
-
                         const markResponse = await fetch('/rag-upload-text/mark-uploaded', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                document_ids: documentIds
-                            })
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ document_ids: documentIds })
                         });
-
-                        if (markResponse.ok) {
-                            const markResult = await markResponse.json();
-                            console.log('Mark uploaded result:', markResult);
-                            uploadMsg = `Uploaded ${documentIds.length} text${documentIds.length > 1 ? 's' : ''} to Azure`;
-                            showUploadMessage = true;
-                        } else {
-                            console.warn('Failed to mark documents as uploaded in database');
-                            uploadMsg = `Uploaded ${documentIds.length} text${documentIds.length > 1 ? 's' : ''} to Azure, but failed to update status in database`;
-                            showUploadMessage = true;
-                        }
+                        // Always use the message from /upload-text response
+                        uploadMsg = result.message || `Uploaded ${documentIds.length} text${documentIds.length > 1 ? 's' : ''} to Azure`;
+                        showUploadMessage = true;
                     } catch (markError) {
-                        console.error('Error marking documents as uploaded:', markError);
-                        uploadMsg = `Uploaded to Azure, but error updating status`;
+                        uploadMsg = result.message || 'Uploaded to Azure, but error updating status';
                         showUploadMessage = true;
                     }
                 } else {
-                    uploadMsg = `${result.message} (${result.uploaded_count || result.successful_uploads || selectedDocs.length} documents)`;
+                    uploadMsg = result.message || `${result.uploaded_count || result.successful_uploads || selectedDocs.length} documents processed`;
                     showUploadMessage = true;
                 }
-
-                // Clear selection and reload documents to reflect status changes
                 deselectAll();
-
                 if (showUploadMessage) {
                     showMessage(uploadMsg, 'success');
-                    // Wait 1.5 seconds before reloading documents so user can see the message
                     await new Promise(resolve => setTimeout(resolve, 1500));
                 }
-                await loadDocuments(); // Reload to show updated status
-
+                await loadDocuments();
             } catch (error) {
-                console.error('Error uploading to Azure:', error);
                 showMessage('Failed to upload to Azure: ' + error.message, 'error');
             } finally {
                 showLoading(false);
+                hideMessage();
             }
         }
 
         function showLoading(show) {
-            const loading = document.getElementById('loading');
-            if (show) {
-                loading.classList.add('active');
-            } else {
-                loading.classList.remove('active');
-            }
+            // No-op: loading is now shown as a banner in the message area
         }
 
         function showMessage(text, type) {
             const message = document.getElementById('message');
-            message.textContent = text;
+            message.innerHTML = text;
             message.className = `message ${type} show`;
-
-            setTimeout(() => {
-                hideMessage();
-            }, 5000);
+            // Only auto-hide if not a loading/info spinner
+            if (!text.includes('inline-spinner')) {
+                setTimeout(() => {
+                    hideMessage();
+                }, 5000);
+            }
         }
 
         function hideMessage() {
