@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Azure Search Index Browser</title>
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,14 +15,14 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', 'Noto Sans Thai', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             background: #f8f9fa;
             border-radius: 20px;
@@ -38,7 +40,7 @@
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            /* text-shadow removed for cleaner look */
         }
 
         .header p {
@@ -87,7 +89,7 @@
             border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
-            font-weight: 600;
+            /* font-weight removed for normal buttons */
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
@@ -205,16 +207,19 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-            color: white;
+            background: #d9edf0;
+            color: #324d66;
             padding: 20px;
             border-radius: 15px;
             text-align: center;
+            /* border: 3px solid #b2b7ba; outer grey border */
+      
         }
+
 
         .stat-number {
             font-size: 2em;
-            font-weight: bold;
+            /* font-weight removed for normal weight */
             margin-bottom: 5px;
         }
 
@@ -316,17 +321,19 @@
         }
 
         .document-source {
-            font-weight: 500;
-            color: #6c757d;
+            font-weight: 300;
+            color: #7aa9b2;
             margin-bottom: 4px;
             font-size: 0.85em;
             display: flex;
             align-items: center;
             gap: 5px;
+            font-style: italic;
         }
 
         .document-source::before {
             content: '📄';
+            font-style: italic;
             font-size: 0.9em;
         }
 
@@ -334,10 +341,10 @@
             color: #495057;
             line-height: 1.4;
             font-size: 1.0em;
-            font-weight: 600;
-            margin-bottom: 4px;
+            font-weight: 450;
+            margin-bottom: 5px;
             /* Allow full content display */
-            white-space: pre-wrap;
+            /* white-space: pre-wrap; */
             word-wrap: break-word;
             max-width: 100%;
             text-align: left;
@@ -358,21 +365,23 @@
         }
 
         .delete-btn {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
+            background: #fff;
+            color: #dc3545;
             border: none;
-            padding: 8px 15px;
-            border-radius: 10px;
-            font-size: 0.9em;
+            padding: 0 8px;
+            border-radius: 50%;
+            font-size: 1.3em;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
+            transition: background 0.2s, color 0.2s;
+            font-weight: bold;
+            line-height: 1.1;
+            box-shadow: 0 2px 8px rgba(220,53,69,0.08);
+            position: relative;
         }
 
         .delete-btn:hover {
-            background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+            background: #ffe6ea;
+            color: #a71d2a;
         }
 
         .document-meta {
@@ -473,6 +482,7 @@
                 flex-direction: column;
                 align-items: stretch;
                 min-height: auto;
+                position: relative;
             }
 
             .document-main-content {
@@ -495,15 +505,13 @@
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Azure Index Documents</h1>
-            <p>Browse and manage your Azure AI Search text index documents</p>
+        <div class="header" style="position: relative;">
+            <a href="/static/dashboard.html" class="back-btn" id="backToDashboardBtn" style="position: absolute; left: 30px; top: 30px; margin: 0;">← Back to Dashboard</a>
+            <h1 style="margin-top: 70px; margin-bottom: 0;">Azure Index Documents</h1>
+            <p style="margin-top: 6px;">Browse and manage your Azure AI Search text index documents</p>
         </div>
 
         <div class="content">
-            <div style="padding: 20px; text-align: left;">
-                <a href="/static/dashboard.html" class="back-btn">← Back to Dashboard</a>
-            </div>
             <!-- Message area -->
             <div id="message" class="message"></div>
 
@@ -514,7 +522,7 @@
                     <select id="indexDropdown" class="index-dropdown">
                         <option value="">Loading indexes...</option>
                     </select>
-                    <button class="btn btn-primary" onclick="switchIndex()">
+                    <button class="btn btn-info" onclick="switchIndex()">
                         📋 Load Index
                     </button>
                     <button class="btn" onclick="deleteCurrentIndex()"
@@ -526,7 +534,7 @@
 
             <!-- Stats Section -->
             <div class="stats-section">
-                <div class="stat-card">
+                <div class="stat-card" id="totalDocsCard">
                     <div class="stat-number" id="totalDocs">0</div>
                     <div>Total Documents</div>
                 </div>
@@ -850,23 +858,23 @@
                     <div class="document-header">
                         <div class="document-title-main">📋 ${escapeHtml(documentTitle)}</div>
                     </div>
-                    <div class="title-info">
-                        <span class="title-badge">Document Title</span>
-                    </div>
-                    <div class="document-actions">
-                        <button class="delete-btn" data-title="${escapeHtml(documentTitle)}" title="Delete all documents with this title">
-                            🗑️
-                        </button>
+                    <div class="document-actions" style="position:absolute;top:10px;right:10px;">
+                        <button class="delete-btn" data-title="${escapeHtml(documentTitle)}" title="Delete all documents with this title">&times;</button>
                     </div>
                 </div>
             `).join('');
-            // Event delegation for delete by title
-            document.addEventListener('click', function (e) {
+            // Remove previous event listener if any
+            if (window._deleteByTitleListener) {
+                document.removeEventListener('click', window._deleteByTitleListener);
+            }
+            // Attach a single event listener for delete by title
+            window._deleteByTitleListener = function (e) {
                 if (e.target && e.target.classList.contains('delete-btn') && e.target.hasAttribute('data-title')) {
-                    const title = e.target.getAttribute('data-title');
-                    deleteDocumentByTitle(title);
+                    const docTitle = e.target.getAttribute('data-title');
+                    deleteDocumentByTitle(docTitle);
                 }
-            });
+            };
+            document.addEventListener('click', window._deleteByTitleListener);
             async function deleteDocumentByTitle(documentTitle) {
                 if (!selectedIndex) {
                     showMessage('No index selected', 'error');
@@ -881,7 +889,8 @@
                 }
                 try {
                     showLoading(true);
-                    const url = `/azure-index/delete-documents-by-title/?title=${encodeURIComponent(documentTitle)}`;
+                    // Pass index_name as a query parameter
+                    const url = `/azure-index/delete-documents-by-title/?index_name=${encodeURIComponent(selectedIndex)}&title=${encodeURIComponent(documentTitle)}`;
                     const response = await fetch(url, { method: 'DELETE' });
                     if (!response.ok) {
                         let errorMsg = 'Delete failed.';
@@ -930,11 +939,8 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="document-actions">
-                        <button class="delete-btn" onclick="deleteDocument('${escapeHtml(doc.id)}')" title="Delete document">
-                            🗑️
-                        </button>
+                    <div class="document-actions" style="position:absolute;top:10px;right:10px;">
+                        <button class="delete-btn" onclick="deleteDocument('${escapeHtml(doc.id)}')" title="Delete document">&times;</button>
                     </div>
                 </div>
             `).join('');
