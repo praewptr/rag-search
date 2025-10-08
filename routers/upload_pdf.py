@@ -35,7 +35,13 @@ async def download_document(filepath: str):
     """
     Download a document file from the server folder.
     """
-    file_path = Path(filepath)
+
+    rel_path = filepath.lstrip("/")
+
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+    file_path = Path(os.path.join(root_dir, rel_path))
+
+
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="File not found.")
     return FileResponse(
@@ -54,11 +60,11 @@ async def upload_server_doc(
     Upload a file from the server folder to Azure Blob Storage.
     """
 
-    DOCUMENTS_PATH = os.path.abspath(
+    DOCUMENTS_PATH =  Path(os.path.abspath(
         os.path.join(
             os.path.dirname(__file__), "../../../storage/app/public/chat_files"
         )
-    )
+    ))
     # DOCUMENTS_PATH = Path("C:/Users/PANTHIRA/mock_folder")
     file_path = DOCUMENTS_PATH / filename
     upload_name = target_filename if target_filename else filename
@@ -126,12 +132,18 @@ def list_documents():
     """
     List all document filenames in the documents folder.
     """
-    DOCUMENTS_PATH = Path("C:/Users/PANTHIRA/mock_folder")
+    # DOCUMENTS_PATH = Path("C:/Users/PANTHIRA/mock_folder")
+
+    DOCUMENTS_PATH = Path(os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__), "../../../storage/app/public/chat_files"
+        )
+    ))
     if not DOCUMENTS_PATH.exists():
         return []
 
-    # List only files (not directories)
-    file_list = [file.name for file in DOCUMENTS_PATH.iterdir() if file.is_file()]
+    # List only PDF files (not directories)
+    file_list = [file.name for file in DOCUMENTS_PATH.iterdir() if file.is_file() and file.suffix.lower() == ".pdf"]
     return file_list
 
 

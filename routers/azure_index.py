@@ -469,10 +469,20 @@ async def delete_document_from_index(
 
 
 @router.delete("/delete-documents-by-title/")
-async def delete_documents_by_title(index_name:str,
+async def delete_documents_by_title(index_name: str,
     title: str = Query(..., description="Title of the document to delete"),
 ):
     try:
+        # Step 0: Check index fields for image_vector
+        index_client = SearchIndexClient(
+            endpoint=azure_search_endpoint,
+            credential=AzureKeyCredential(azure_search_key),
+        )
+        
+        index_schema = index_client.get_index(index_name)
+        field_names = [f.name for f in index_schema.fields]
+        has_image_vector = "image_vector" in field_names
+
         # Step 1: Find documents with matching title
         search_client = SearchClient(
             endpoint=azure_search_endpoint,
@@ -480,17 +490,27 @@ async def delete_documents_by_title(index_name:str,
             credential=AzureKeyCredential(azure_search_key),
         )
 
+        if has_image_vector:
+            select_fields = ["text_parent_id", "title", "image_parent_id"]
+        else:
+            # fallback for text-only index
+            select_fields = ["parent_id", "title"]
+
         results = search_client.search(
             search_text=title,
-            select=["text_parent_id", "title", "image_parent_id"],
+            select=select_fields,
             top=100,
         )
 
-      
         parent_ids = set()
-        for doc in results:
-            if doc.get("title") == title and doc.get("text_parent_id"):
-                parent_ids.add(doc["text_parent_id"])
+        if has_image_vector:
+            for doc in results:
+                if doc.get("title") == title and doc.get("text_parent_id"):
+                    parent_ids.add(doc["text_parent_id"])
+        else:
+            for doc in results:
+                if doc.get("title") == title and doc.get("parent_id"):
+                    parent_ids.add(doc["parent_id"])
 
         if not parent_ids:
             raise HTTPException(
@@ -500,14 +520,20 @@ async def delete_documents_by_title(index_name:str,
         total_deleted = 0
         documents_to_delete = []
 
-        for target_text_parent_id in parent_ids:
-            # Step 2: Get all docs with matching text_parent_id or image_parent_id (select all fields)
-            results_text = search_client.search(
-                search_text="*", filter=f"text_parent_id eq '{target_text_parent_id}'", select=["*"]
-            )
-            results_image = search_client.search(
-                search_text="*", filter=f"image_parent_id eq '{target_text_parent_id}'", select=["*"]
-            )
+        for target_parent_id in parent_ids:
+            # Step 2: Get all docs with matching parent_id fields (select all fields)
+            if has_image_vector:
+                results_text = search_client.search(
+                    search_text="*", filter=f"text_parent_id eq '{target_parent_id}'", select=["*"]
+                )
+                results_image = search_client.search(
+                    search_text="*", filter=f"image_parent_id eq '{target_parent_id}'", select=["*"]
+                )
+            else:
+                results_text = search_client.search(
+                    search_text="*", filter=f"parent_id eq '{target_parent_id}'", select=["*"]
+                )
+                results_image = []
 
             # Step 3: Collect chunk_ids, with debug logging
             for doc in results_text:
