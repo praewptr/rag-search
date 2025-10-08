@@ -176,8 +176,8 @@ async def rag_pipeline(question: str, openai_client: AzureOpenAI) -> str:
         )
 
         # --- Step 1: Search documents concurrently ---
-        text_results = search_client_text.search(search_text=None, vector_queries=[vector_query])
-        pdf_results = search_client_pdf.search(search_text=None, vector_queries=[vector_query])
+        text_results = search_client_text.search(search_text=question, vector_queries=[vector_query])
+        pdf_results = search_client_pdf.search(search_text=question, vector_queries=[vector_query])
 
         # --- Step 2: Combine and process results ---
         combined_results = _process_search_results(text_results, "content")
