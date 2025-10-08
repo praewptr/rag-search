@@ -698,7 +698,22 @@
             showMessage('<span class="inline-spinner"></span>Loading documents...', 'info');
             try {
                 const response = await fetch(`/rag-upload-text/text?status=${status}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    let backendMsg = '';
+                    try {
+                        const data = await response.json();
+                        backendMsg = data.message || data.detail || response.statusText || '';
+                    } catch {
+                        backendMsg = response.statusText || '';
+                    }
+                    showMessage('Failed to load documents: ' + backendMsg, 'error');
+                    // Show backend error in the grid area as well
+                    const grid = document.getElementById('documentsGrid');
+                    grid.innerHTML = `<div class="no-documents"><h3>Something went wrong</h3><p>${backendMsg || 'Failed to load documents.'}</p></div>`;
+                    documents = [];
+                    filteredDocuments = [];
+                    return;
+                }
                 const data = await response.json();
                 documents = data.value || [];
                 if (status === 'all') {
@@ -716,7 +731,8 @@
                     showMessage(`No documents found for filter: ${status}`, 'info');
                 }
             } catch (error) {
-                showMessage('Failed to load documents: ' + error.message, 'error');
+                let backendMsg = error && error.message ? error.message : 'Unknown error';
+                showMessage('Failed to load documents: ' + backendMsg, 'error');
                 documents = [];
                 filteredDocuments = [];
                 renderDocuments();
