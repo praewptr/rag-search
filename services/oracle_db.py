@@ -82,9 +82,9 @@ class OracleDBService:
             
             # Build query with optional WHERE clause
             if added is not None:
-                cursor.execute("SELECT k.*, k.ROWID FROM DIGITAL_TEST.knowledge k WHERE ADDED = :1", [added])
+                cursor.execute("SELECT k.*, k.ROWID FROM DIGITAL_TEST.TBL_KNOWLEDGE k WHERE ADDED = :1", [added])
             else:
-                cursor.execute("SELECT k.*, k.ROWID FROM DIGITAL_TEST.knowledge k")
+                cursor.execute("SELECT k.*, k.ROWID FROM DIGITAL_TEST.TBL_KNOWLEDGE k")
 
             # Get column names
             columns = [col[0] for col in cursor.description]
@@ -168,7 +168,7 @@ class OracleDBService:
 
             # Delete the record by ID
             cursor.execute(
-                "DELETE FROM DIGITAL_TEST.knowledge WHERE ID = :1", [record_id]
+                "DELETE FROM DIGITAL_TEST.TBL_KNOWLEDGE WHERE ID = :1", [record_id]
             )
 
             # Commit the transaction
@@ -205,7 +205,7 @@ class OracleDBService:
 
             # Execute the query for specific ID
             cursor.execute(
-                "SELECT k.*, k.ROWID FROM DIGITAL_TEST.knowledge k WHERE ID = :1",
+                "SELECT k.*, k.ROWID FROM DIGITAL_TEST.TBL_KNOWLEDGE k WHERE ID = :1",
                 [record_id],
             )
 
@@ -253,7 +253,7 @@ class OracleDBService:
             # Update ADDED column to 1
             cursor.execute(
                 """
-                UPDATE DIGITAL_TEST.knowledge
+                UPDATE DIGITAL_TEST.TBL_KNOWLEDGE
                 SET ADDED = 1
                 WHERE ID = :id
                 """,
@@ -294,7 +294,7 @@ class OracleDBService:
 
             cursor.executemany(
                 """
-                UPDATE DIGITAL_TEST.knowledge
+                UPDATE DIGITAL_TEST.TBL_KNOWLEDGE
                 SET ADDED = 1
                 WHERE ID = :id
                 """,
