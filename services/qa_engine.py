@@ -132,9 +132,9 @@ def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
 
     system_prompt = """
     You are a helpful AI assistant. Answer the user's question using ONLY the provided CONTEXT below.
-    - Focus on providing an answer that is directly relevant to the user's question.
+    - If the context contains information that is even slightly related to the question, use it to answer as best as possible.
     - If the context contains unrelated or extra information, IGNORE it and do not include it in your answer.
-    - If the information in the context is not sufficient to answer the question, respond with "NO_ANSWER_FOUND".
+    - If the information in the context is not sufficient to answer the question at all, respond with "NO_ANSWER_FOUND".
     - Be concise and professional. Do not cite the source file for the information you use.
     - Always answer in the SAME LANGUAGE as the question. If the question is in Thai, answer in Thai. If in English, answer in English.
     """
