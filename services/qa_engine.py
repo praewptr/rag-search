@@ -1,5 +1,9 @@
+from logging import config
+import re
+from typing import Any, Dict, List, Optional
 import json
-
+import asyncio
+from fastapi import HTTPException
 from azure.search.documents.models import VectorizedQuery
 from openai import AzureOpenAI
 
@@ -110,6 +114,14 @@ def get_response(
 
     return answer, citations
 
+# --- Helper functions (remain unchanged) ---
+def fix_line_breaks(text: str) -> str:
+    if not isinstance(text, str): return ""
+    return re.sub(r'(?<!\n)\n(?!\n)', ' ', text).strip()
+
+def _process_search_results(results: List[Dict[str, Any]], content_field: str) -> List[Dict[str, Any]]:
+    return [{"score": result["@search.score"], "content": result[content_field]} for result in results]
+
 
 def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
     """Gets a final answer from the LLM based on the query and retrieved context."""
@@ -119,20 +131,15 @@ def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
         return None
 
     system_prompt = """
-    You are a helpful AI assistant. Answer the user's question based ONLY on the provided information.
-    If the information is not sufficient to answer the question, respond with "NO_ANSWER_FOUND".
-    Be concise and professional. Do not cite the source file for the information you use.
+    You are a helpful AI assistant. Answer the user's question using ONLY the provided CONTEXT below.
+    - Focus on providing an answer that is directly relevant to the user's question.
+    - If the context contains unrelated or extra information, IGNORE it and do not include it in your answer.
+    - If the information in the context is not sufficient to answer the question, respond with "NO_ANSWER_FOUND".
+    - Be concise and professional. Do not cite the source file for the information you use.
+    - Always answer in the SAME LANGUAGE as the question. If the question is in Thai, answer in Thai. If in English, answer in English.
     """
 
-    user_prompt = f"""
-    CONTEXT:
-    ---
-    {context}
-    ---
-    QUESTION: {query}
-    
-    ANSWER:
-    """
+    user_prompt = f"CONTEXT:\n---\n{context}\n---\n\nQUESTION: {query}\n\nANSWER:"
 
     try:
         response = openai_client.chat.completions.create(
@@ -141,8 +148,8 @@ def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.1,
-            max_tokens=500,
+            temperature=0.3,
+            max_tokens=700,
         )
 
         answer = response.choices[0].message.content.strip()
@@ -154,60 +161,52 @@ def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
         return answer
 
     except Exception as e:
-        print(f"Error calling LLM: {e}")
-        return None
+        return f"Error generating answer: {str(e)}"
 
 
-def rag_pipeline(question: str):
-    question_emb = embeddings.embed_query(question)
-    vector_query_text = VectorizedQuery(
-        vector=question_emb, k_nearest_neighbors=3, fields="text_vector"
-    )
-    vector_query_pdf = VectorizedQuery(
-        vector=question_emb, k_nearest_neighbors=3, fields="text_vector"
-    )
-    combined_results = []
-    SCORE_THRESHOLD = 0.55
+async def rag_pipeline(question: str, openai_client: AzureOpenAI) -> str:
+    """
+    An improved, asynchronous RAG pipeline that retrieves context, processes it,
+    and generates a final answer using an LLM.
+    """
     try:
-        # Run the search on the text index and wait for it to complete
-        text_results = search_client_text.search(
-            search_text=None, vector_queries=[vector_query_text]
+        question_emb = embeddings.embed_query(question)
+        vector_query = VectorizedQuery(
+            vector=question_emb, k_nearest_neighbors=3, fields="text_vector"
         )
 
-        # Process results from the text index using a standard 'for' loop
-        for result in text_results:
-            combined_results.append(
-                {"score": result["@search.score"], "content": result["content"]}
-            )
+        # --- Step 1: Search documents concurrently ---
+        text_results = search_client_text.search(search_text=None, vector_queries=[vector_query])
+        pdf_results = search_client_pdf.search(search_text=None, vector_queries=[vector_query])
 
-        # Now, run the search on the PDF index and wait for it to complete
-        pdf_results = search_client_pdf.search(
-            search_text=None, vector_queries=[vector_query_pdf]
-        )
-
-        # Process results from the PDF index
-        for result in pdf_results:
-            combined_results.append(
-                {"score": result["@search.score"], "content": result["chunk"]}
-            )
-
-        sorted_results = sorted(
-            combined_results, key=lambda x: x["score"], reverse=True
-        )
+        # --- Step 2: Combine and process results ---
+        combined_results = _process_search_results(text_results, "content")
+        combined_results.extend(_process_search_results(pdf_results, "chunk"))
+        
+        sorted_results = sorted(combined_results, key=lambda x: x["score"], reverse=True)
+        
         top_results = [
-            res for res in sorted_results if res["score"] >= SCORE_THRESHOLD
-        ][:5]
+            res for res in sorted_results if res["score"] >= 0.5
+        ][:3]
 
-        # If no results meet the threshold, return None
         if not top_results:
-            return None
+            return []
 
+        # --- Step 3: Assemble and clean the context for the LLM ---
         context_for_llm = ""
-        for i, result in enumerate(top_results):
-            context_for_llm += f"Content: {result['content']}\n\n"
+        for i, result in enumerate(top_results, 1):
+            cleaned_content = fix_line_breaks(result['content'])
+            context_for_llm += f"--- Excerpt {i} ---\n{cleaned_content}\n\n"
+        
+        print(f"Final Context for LLM:\n{context_for_llm}")
+
+        # --- Step 4: Generate the final answer ---
+        final_answer = get_llm_answer(question, context_for_llm, openai_client)
+        if final_answer is None:
+            return []
+        else:
+            return final_answer
+        
 
     except Exception as e:
-        print(f"Error during search: {e}")
-        return None
-
-    return context_for_llm
+        raise HTTPException(status_code=500, detail=f"Internal error: {e}")

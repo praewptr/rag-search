@@ -1,9 +1,22 @@
 from fastapi import APIRouter, HTTPException
-
+from pydantic import BaseModel
+from typing import Union
 from models.rag_search import QuestionRequest
 from services.client import azure_openai_client
 from services.qa_engine import get_response,rag_pipeline,get_llm_answer
 from services.utils import remove_citation_markers
+from typing import Any, Dict, List, Optional
+
+
+
+
+class QuestionRequest(BaseModel):
+    text: str
+
+class AnswerResponse(BaseModel):
+    text: Union[str, list[str]]
+
+
 
 router = APIRouter()
 
@@ -37,28 +50,19 @@ def ask_question(request: QuestionRequest):
         )
 
 
-@router.post("/aisearch")
-def langchain_search(request: QuestionRequest):
+@router.post("/aisearch", response_model=AnswerResponse)
+async def ai_search(request: QuestionRequest):
+    """
+    Receives a question, processes it through the full RAG pipeline,
+    and returns a structured answer. The endpoint logic is now clean and simple.
+    """
     try:
-        # Get context from RAG pipeline
-        context = rag_pipeline(request.text)
-        
-        # If no context found, return empty list
-        if not context:
-            return {"text": []}
-        
-        # Get LLM answer based on context
-        final_answer = get_llm_answer(request.text, context, azure_openai_client)
-        
-        # If LLM couldn't generate an answer, return empty list
-        if not final_answer:
-            return {"text": []}
-            
-        # Clean and return the answer
-        cleaned_answer = remove_citation_markers(final_answer)
-        return {"text": cleaned_answer}
-
+        # The endpoint now makes a single, logical call to the pipeline.
+        final_answer = await rag_pipeline(request.text, azure_openai_client)
+        return AnswerResponse(text=final_answer)
     except Exception as e:
+        print(f"An error occurred in the ai_search endpoint: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Error processing request: {str(e)}"
+            status_code=500,
+            detail="An internal error occurred while processing your request."
         )
