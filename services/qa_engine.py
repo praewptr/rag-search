@@ -1,10 +1,9 @@
-from logging import config
-import re
-from typing import Any, Dict, List, Optional
 import json
-import asyncio
-from fastapi import HTTPException
+import re
+from typing import Any, Dict, List
+
 from azure.search.documents.models import VectorizedQuery
+from fastapi import HTTPException
 from openai import AzureOpenAI
 
 from config import (
@@ -114,13 +113,21 @@ def get_response(
 
     return answer, citations
 
+
 # --- Helper functions (remain unchanged) ---
 def fix_line_breaks(text: str) -> str:
-    if not isinstance(text, str): return ""
-    return re.sub(r'(?<!\n)\n(?!\n)', ' ', text).strip()
+    if not isinstance(text, str):
+        return ""
+    return re.sub(r"(?<!\n)\n(?!\n)", " ", text).strip()
 
-def _process_search_results(results: List[Dict[str, Any]], content_field: str) -> List[Dict[str, Any]]:
-    return [{"score": result["@search.score"], "content": result[content_field]} for result in results]
+
+def _process_search_results(
+    results: List[Dict[str, Any]], content_field: str
+) -> List[Dict[str, Any]]:
+    return [
+        {"score": result["@search.score"], "content": result[content_field]}
+        for result in results
+    ]
 
 
 def get_llm_answer(query: str, context: str, openai_client: AzureOpenAI):
@@ -176,18 +183,22 @@ async def rag_pipeline(question: str, openai_client: AzureOpenAI) -> str:
         )
 
         # --- Step 1: Search documents concurrently ---
-        text_results = search_client_text.search(search_text=None, vector_queries=[vector_query])
-        pdf_results = search_client_pdf.search(search_text=None, vector_queries=[vector_query])
+        text_results = search_client_text.search(
+            search_text=None, vector_queries=[vector_query]
+        )
+        pdf_results = search_client_pdf.search(
+            search_text=None, vector_queries=[vector_query]
+        )
 
         # --- Step 2: Combine and process results ---
         combined_results = _process_search_results(text_results, "content")
         combined_results.extend(_process_search_results(pdf_results, "chunk"))
-        
-        sorted_results = sorted(combined_results, key=lambda x: x["score"], reverse=True)
-        
-        top_results = [
-            res for res in sorted_results if res["score"] >= 0.5
-        ][:3]
+
+        sorted_results = sorted(
+            combined_results, key=lambda x: x["score"], reverse=True
+        )
+
+        top_results = [res for res in sorted_results if res["score"] >= 0.5][:3]
 
         if not top_results:
             return []
@@ -195,10 +206,10 @@ async def rag_pipeline(question: str, openai_client: AzureOpenAI) -> str:
         # --- Step 3: Assemble and clean the context for the LLM ---
         context_for_llm = ""
         for i, result in enumerate(top_results, 1):
-            cleaned_content = fix_line_breaks(result['content'])
+            cleaned_content = fix_line_breaks(result["content"])
             context_for_llm += f"--- Excerpt {i} ---\n{cleaned_content}\n\n"
-        
-        print(f"Final Context for LLM:\n{context_for_llm}")
+
+        # print(f"Final Context for LLM:\n{context_for_llm}")
 
         # --- Step 4: Generate the final answer ---
         final_answer = get_llm_answer(question, context_for_llm, openai_client)
@@ -206,7 +217,6 @@ async def rag_pipeline(question: str, openai_client: AzureOpenAI) -> str:
             return []
         else:
             return final_answer
-        
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")
