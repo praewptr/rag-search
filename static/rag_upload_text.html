@@ -1027,19 +1027,14 @@
             showMessage('<span class="inline-spinner"></span>Uploading to Azure...', 'info');
             showLoading(true);
             try {
-
-
-                console.log('Uploading documents:', selectedDocs);
-                console.log('Selected IDs:', Array.from(selectedDocuments));
-                console.log('Backup Array:', selectedArray);
-
-                if (selectedDocs.length === 0) {
-                    throw new Error('No documents found for selected IDs');
-                }
+                // Get selected documents from filteredDocuments based on selectedDocuments IDs
+                const selectedDocs = filteredDocuments.filter(doc => {
+                    const docId = String(doc.ID || doc.id);
+                    return selectedDocuments.has(docId);
+                });
 
                 console.log('Uploading documents:', selectedDocs);
                 console.log('Selected IDs:', Array.from(selectedDocuments));
-                console.log('Backup Array:', selectedArray);
 
                 if (selectedDocs.length === 0) {
                     throw new Error('No documents found for selected IDs');
