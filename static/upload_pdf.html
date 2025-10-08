@@ -598,7 +598,7 @@
                             downloadBtn.style.marginTop = '6px';
                             downloadBtn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
-                                const filepath = `C:/Users/PANTHIRA/mock_folder/${doc}`;
+                                const filepath = `/storage/app/public/chat_files/${doc}`;
                                 window.open(`/upload-pdf/download-document?filepath=${encodeURIComponent(filepath)}`);
                             });
                             // Place download icon below filename
