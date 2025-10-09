@@ -74,7 +74,7 @@ class OracleDBService:
             added: Optional filter for ADDED column (0 for pending, 1 for uploaded, None for all)
 
         Returns:
-            Dict containing 'value' key with list of documents
+            Dict containing 'value' key with list of documents (only mapped fields)
         """
         try:
             connection = self.get_connection()
@@ -99,46 +99,15 @@ class OracleDBService:
                 for col_name, value in zip(columns, row):
                     if isinstance(value, datetime):
                         value = value.isoformat() + "Z"
-                    row_dict[col_name] = value
+                    row_dict[col_name.upper()] = value
 
-                # Map Oracle columns to expected field names (case-insensitive mapping)
-                mapped_dict = dict(row_dict)  # Copy original
-
-                # Map common field names
-                for oracle_col in row_dict:
-                    oracle_col_upper = oracle_col.upper()
-                    if oracle_col_upper in ["CONTENT", "TEXT", "BODY", "DESCRIPTION"]:
-                        mapped_dict["content"] = row_dict[oracle_col]
-                    elif oracle_col_upper in [
-                        "SOURCE",
-                        "FILENAME",
-                        "FILE_NAME",
-                        "TITLE",
-                        "NAME",
-                        "USER_NAME",
-                    ]:
-                        mapped_dict["source"] = row_dict[oracle_col]
-                    elif oracle_col_upper in [
-                        "TIMESTAMP",
-                        "CREATED_DATE",
-                        "CREATE_DATE",
-                        "DATE_CREATED",
-                    ]:
-                        mapped_dict["timestamp"] = row_dict[oracle_col]
-
-                # Always add 'added' field (lowercase) for frontend compatibility
-                if "ADDED" in mapped_dict:
-                    mapped_dict["added"] = mapped_dict["ADDED"]
-                elif "added" in mapped_dict:
-                    mapped_dict["added"] = mapped_dict["added"]
-                else:
-                    mapped_dict["added"] = None
-
-                # Add ID if not present
-                if "ID" not in mapped_dict or mapped_dict["ID"] is None:
-                    mapped_dict["id"] = i + 1
-                else:
-                    mapped_dict["id"] = mapped_dict["ID"]
+                mapped_dict = {
+                    "content": row_dict.get("CONTENT"),
+                    "source": row_dict.get("USER_NAME"),
+                    "timestamp": row_dict.get("CREATED_DATE"),
+                    "added": row_dict.get("ADDED"),
+                    "id": row_dict.get("ID", i + 1)
+                }
 
                 data.append(mapped_dict)
 
