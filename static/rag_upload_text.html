@@ -364,18 +364,6 @@
 
         .status-uploaded {
             background: #e6f9ed;
-            color: #4ca96b;
-            border: 1px solid #b7e4c7;
-        }
-
-        .status-pending {
-            background: #fffbe6;
-            color: #c9a13b;
-            border: 1px solid #ffe066;
-        }
-
-        .status-uploaded {
-            background: #e6f9ed;
             color: #218838;
             border: 1px solid #b7e4c7;
         }
@@ -716,12 +704,17 @@
                 }
                 const data = await response.json();
                 documents = data.value || [];
+                function getAdded(doc) {
+                    if (typeof doc.added !== 'undefined') return doc.added;
+                    if (typeof doc.ADDED !== 'undefined') return doc.ADDED;
+                    return undefined;
+                }
                 if (status === 'all') {
                     filteredDocuments = [...documents];
                 } else if (status === 'uploaded') {
-                    filteredDocuments = documents.filter(doc => doc.added === 1 || doc.added === '1');
+                    filteredDocuments = documents.filter(doc => getAdded(doc) === 1 || getAdded(doc) === '1');
                 } else if (status === 'pending') {
-                    filteredDocuments = documents.filter(doc => doc.added !== 1 && doc.added !== '1');
+                    filteredDocuments = documents.filter(doc => getAdded(doc) !== 1 && getAdded(doc) !== '1');
                 } else {
                     filteredDocuments = [...documents];
                 }
@@ -864,6 +857,12 @@
         }
 
 
+        function getAdded(doc) {
+            if (typeof doc.added !== 'undefined') return doc.added;
+            if (typeof doc.ADDED !== 'undefined') return doc.ADDED;
+            return undefined;
+        }
+
         function renderDocuments() {
             const grid = document.getElementById('documentsGrid');
 
@@ -884,7 +883,8 @@
                 const docId = String(doc.ID || doc.id);
                 const isSelected = selectedDocuments.has(docId);
                 let status, statusText;
-                if (doc.added === 1 || doc.added === '1') {
+                const addedValue = getAdded(doc);
+                if (addedValue === 1 || addedValue === '1') {
                     status = 'uploaded';
                     statusText = 'Uploaded';
                 } else {
@@ -1116,9 +1116,7 @@
             }
         }
 
-        function showLoading(show) {
-            // No-op: loading is now shown as a banner in the message area
-        }
+
 
         function showMessage(text, type) {
             const message = document.getElementById('message');
