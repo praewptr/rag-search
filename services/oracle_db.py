@@ -105,7 +105,7 @@ class OracleDBService:
                     "content": row_dict.get("CONTENT"),
                     "source": row_dict.get("USER_NAME"),
                     "timestamp": row_dict.get("CREATED_DATE"),
-                    "added": row_dict.get("ADDED"),
+                    "ADDED": row_dict.get("ADDED"),
                     "id": row_dict.get("ID", i + 1)
                 }
 
