@@ -183,8 +183,8 @@ async def rag_pipeline(question: str, openai_client: AzureOpenAI) -> str:
         )
 
         # --- Step 1: Search documents concurrently ---
-        text_results = search_client_text.search(search_text=question, vector_queries=[vector_query])
-        pdf_results = search_client_pdf.search(search_text=question, vector_queries=[vector_query])
+        text_results = search_client_text.search(search_text=None, vector_queries=[vector_query])
+        pdf_results = search_client_pdf.search(search_text=None, vector_queries=[vector_query])
 
         # --- Step 2: Combine and process results ---
         combined_results = _process_search_results(text_results, "content")
@@ -194,8 +194,8 @@ async def rag_pipeline(question: str, openai_client: AzureOpenAI) -> str:
             combined_results, key=lambda x: x["score"], reverse=True
         )
 
-        top_results = [res for res in sorted_results if res["score"] >= 0.5][:3]
-
+        # top_results = [res for res in sorted_results if res["score"] >= 0.5][:3]
+        top_results = sorted_results[:3]
         if not top_results:
             return []
 
@@ -205,7 +205,7 @@ async def rag_pipeline(question: str, openai_client: AzureOpenAI) -> str:
             cleaned_content = fix_line_breaks(result["content"])
             context_for_llm += f"--- Excerpt {i} ---\n{cleaned_content}\n\n"
 
-        # print(f"Final Context for LLM:\n{context_for_llm}")
+        print(f"Final Context for LLM:\n{context_for_llm}")
 
         # --- Step 4: Generate the final answer ---
         final_answer = get_llm_answer(question, context_for_llm, openai_client)
