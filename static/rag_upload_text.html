@@ -1082,6 +1082,7 @@
                 if (result.status === 'success' || result.uploaded_count > 0) {
                     try {
                         const documentIds = selectedDocs.map(doc => doc.ID || doc.id);
+                        console.log('Marking documents as uploaded:', documentIds);
                         const markResponse = await fetch('/rag-upload-text/mark-uploaded', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
