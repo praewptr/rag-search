@@ -228,3 +228,6 @@ temp_images/
 
 # Ignore the entire notebooks folder
 notebooks/
+
+.json
+*.json
