@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import Dict, List
 
@@ -13,25 +14,31 @@ from config import (
 )
 from services.client import embeddings
 
+logger = logging.getLogger(__name__)
+
 
 # 1. Chunking
 def chunk_content(content: str, source: str, timestamp: str = None) -> List[Document]:
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    chunks = splitter.split_text(content)
-    documents = []
-    for i, chunk in enumerate(chunks):
-        documents.append(
-            Document(
-                page_content=chunk,
-                metadata={
-                    "id": str(uuid.uuid4()),
-                    "chunk_id": str(uuid.uuid4()),
-                    "source": source,
-                    "timestamp": timestamp,
-                },
+    try:
+        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        chunks = splitter.split_text(content)
+        documents = []
+        for i, chunk in enumerate(chunks):
+            documents.append(
+                Document(
+                    page_content=chunk,
+                    metadata={
+                        "id": str(uuid.uuid4()),
+                        "chunk_id": str(uuid.uuid4()),
+                        "source": source,
+                        "timestamp": timestamp,
+                    },
+                )
             )
-        )
-    return documents
+        return documents
+    except Exception as e:
+        logger.error(f"Error during chunking content from source {source}: {e}")
+        raise e
 
 
 # 2. Upload to Azure Search
@@ -65,48 +72,43 @@ def upload_to_azure_search(documents: List[Document], index_name: str = None):
     # Upload in batches
     try:
         result = search_client.upload_documents(documents=azure_docs)
-        print(
-            f"✅ Successfully uploaded {len(azure_docs)} documents to Azure Search index '{target_index}'"
+        logger.info(
+            f"Successfully uploaded {len(azure_docs)} documents to Azure Search index '{target_index}'"
         )
 
         # Log any failures in detail
         for r in result:
             if not r.succeeded:
-                print(f"❌ Failed to upload document {r.key}: {r.error_message}")
+                logger.error(f"Failed to upload document ID {r.key}: {r.error_message}")
 
         return result
     except Exception as e:
-        print(f"❌ Error uploading to Azure Search: {e}")
-        print(f"❌ Index name: {target_index}")
-        print(f"❌ Endpoint: {azure_search_endpoint}")
-        print(f"❌ Document count: {len(azure_docs)}")
-        if azure_docs:
-            print(
-                f"❌ Sample document keys: {[doc.get('id', 'no-id') for doc in azure_docs[:3]]}"
-            )
-            print(
-                f"❌ Sample document structure: {list(azure_docs[0].keys()) if azure_docs else 'No documents'}"
-            )
-
-        # Enhance error message with more context
         error_msg = str(e)
+        logger.error(f"Error uploading to Azure Search: {e}")
         if "not found" in error_msg.lower() or "404" in error_msg:
+            logger.error(f"Index '{target_index}' not found in Azure Search.")
             raise Exception(
                 f"Index '{target_index}' not found in Azure Search. Please verify the index exists."
             )
         elif "bad request" in error_msg.lower() or "400" in error_msg:
+            logger.error(f"Bad request for index '{target_index}': {error_msg}")
             raise Exception(
                 f"Index '{target_index}' field structure mismatch. Expected fields: id, content, source, timestamp, chunk_id, text_vector. Original error: {error_msg}"
             )
         elif "unauthorized" in error_msg.lower() or "401" in error_msg:
+            logger.error(f"Authentication failed for Azure Search: {error_msg}")
             raise Exception(
                 f"Authentication failed for Azure Search. Please check API key. Original error: {error_msg}"
             )
         elif "forbidden" in error_msg.lower() or "403" in error_msg:
+            logger.error(f"Access denied to index '{target_index}': {error_msg}")
             raise Exception(
                 f"Access denied to index '{target_index}'. Please check API key permissions. Original error: {error_msg}"
             )
         else:
+            logger.error(
+                f"Failed to upload documents to index '{target_index}': {error_msg}"
+            )
             raise Exception(
                 f"Upload to index '{target_index}' failed. This may indicate field structure incompatibility or configuration issues. Original error: {error_msg}"
             )

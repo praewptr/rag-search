@@ -377,12 +377,23 @@
                 </div>
             </div>
 
-            <!-- API Documentation Section -->
+            <!-- API Documentation & Notion Section -->
             <div class="api-section">
                 <h2>🔧 API Documentation & Tools</h2>
                 <div class="api-links">
                     <a href="/docs" class="api-link">📚 API Docs (Swagger)</a>
                     <a href="/redoc" class="api-link">📖 API Docs (ReDoc)</a>
+                    <a id="notion-link" href="#" class="api-link" target="_blank">📄 Azure Management Document</a>
+        <script>
+                // Set Notion link dynamically from backend
+                fetch('/notion-link')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.url) {
+                            document.getElementById('notion-link').href = data.url;
+                        }
+                    });
+        </script>
                 </div>
             </div>
         </div>

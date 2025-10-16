@@ -3,7 +3,7 @@ import os
 
 from fastapi import HTTPException
 
-from models.upload_txt import (
+from models.upload import (
     DocumentItem,
 )
 from services.azure_upload import process_and_upload

@@ -22,26 +22,17 @@ class DocumentItem(BaseModel):
         extra = "allow"
 
 
-class UploadResponse(BaseModel):
-    """Pydantic model for upload responses."""
-
-    document_count: int
-    chunk_count: int
-    message: str
-    uploaded_documents: List[Dict[str, Any]]
-
-
 class DocumentResponse(BaseModel):
     value: List[Dict[str, Any]]  # Changed to support Oracle data structure
 
 
-class UploadRequest(BaseModel):
-    value: List[DocumentItem]
+# class UploadRequest(BaseModel):
+#     value: List[DocumentItem]
 
 
 class DocumentsPayload(BaseModel):
-    value: List[DocumentItem]
-    index: Optional[str] = None  # Optional index name for upload
+    value: List[DocumentItem] = Field(..., description="List of text items to upload")
+    index: Optional[str] = Field(None, description="Index name for upload")
 
 
 class SearchResult(BaseModel):
@@ -79,4 +70,60 @@ class IndexStats(BaseModel):
 
     total_documents: int
     index_name: str
+    status: str
+
+
+class UploadResponse(BaseModel):
+    message: str
+    container: str
+    overwrite: bool
+
+
+class ListContainersResponse(BaseModel):
+    containers: list
+    count: int
+    status: str
+
+
+class DeleteResponse(BaseModel):
+    message: str
+    container: str | None = None
+
+
+class MarkUploaded(BaseModel):
+    document_ids: List[int] = Field(
+        ..., description="List of document IDs to mark as uploaded"
+    )
+
+
+class UploadTextResponse(BaseModel):
+    message: str
+    uploaded_count: int
+    status: str
+    failed_count: int
+    target_index: str
+
+
+class MarkUploadedResponse(BaseModel):
+    message: str
+    updated_count: int
+    failed_count: int
+    status: str
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+class ListFilesResponse(BaseModel):
+    files: list[str]
+    count: int
+    container: str
+    status: str
+
+
+# Response model for listing documents in the server folder
+class ListDocumentsResponse(BaseModel):
+    files: list[str]
+    count: int
     status: str

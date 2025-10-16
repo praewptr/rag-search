@@ -1,29 +1,35 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, Union
 
 from azure.core.credentials import AzureKeyCredential
+from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
     SearchIndex,
 )
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Query
-from azure.search.documents import SearchClient
+from fastapi import APIRouter, HTTPException, Path, Query
+
 from config import (
     azure_search_endpoint,
     azure_search_index_txt,
     azure_search_key,
 )
-from models.azure_index import CreateIndexRequest, CreateIndexResponse
-from models.upload_txt import (
+from models.azure_index import (
+    CreateIndexRequest,
+    CreateIndexResponse,
+    DeleteByTitleResponse,
+    DeleteDocumentResponse,
+    DeleteIndexResponse,
+    IndexInfo,
+    ListIndexesResponse,
+)
+from models.upload import (
     IndexStats,
     SearchResponse,
     SearchResult,
     TitleListResponse,
-)
-from services.client import (
-    search_client_pdf,  # Assumes this is a configured SearchClient
 )
 from utils.azure_index import (
     count_documents,
@@ -78,7 +84,6 @@ async def create_index(request: CreateIndexRequest):
                 logger.info(f"Successfully deleted existing index: {index_name}")
 
         except Exception:
-            # Index doesn't exist, which is what we want
             logger.info(f"Index '{index_name}' doesn't exist, proceeding with creation")
 
         # Define the index schema
@@ -105,49 +110,39 @@ async def create_index(request: CreateIndexRequest):
         )
 
     except Exception as e:
-        logger.error(f"Error creating index: {e}")
+        logger.error(f"An error occurred in the azure-index/create_index endpoint: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to create index '{request.name}': {str(e)}"
         )
 
 
-@router.get("/indexes")
+@router.get("/indexes", response_model=ListIndexesResponse)
 async def list_available_indexes():
     """
     Get list of available Azure Search indexes.
-
-    Returns:
-        List of available indexes
     """
     try:
         index_client = get_index_client()
         indexes = list(index_client.list_indexes())
-
-        available_indexes = []
-        for index in indexes:
-            available_indexes.append({"name": index.name})
-
-        return {
-            "status": "success",
-            "indexes": available_indexes,
-            "default_index": azure_search_index_txt,
-        }
-
+        available_indexes = [IndexInfo(name=index.name) for index in indexes]
+        return ListIndexesResponse(
+            status="success",
+            indexes=available_indexes,
+            default_index=azure_search_index_txt,
+        )
     except Exception as e:
-        logger.error(f"Error listing indexes: {str(e)}")
+        logger.error(
+            f"An error occurred in the azure-index/list_indexes endpoint: {str(e)}"
+        )
         raise HTTPException(status_code=500, detail=f"Failed to list indexes: {str(e)}")
 
 
-@router.delete("/index/{index_name}")
-async def delete_index(index_name: str):
+@router.delete("/index/{index_name}", response_model=DeleteIndexResponse)
+async def delete_index(
+    index_name: str = Path(..., description="Name of the Azure Search index to delete"),
+):
     """
     Delete an Azure Search index.
-
-    Args:
-        index_name: Name of the index to delete
-
-    Returns:
-        Success message
     """
     try:
         await handle_index_error(index_name, "deletion")
@@ -155,15 +150,14 @@ async def delete_index(index_name: str):
         logger.info(f"Deleting index: {index_name}")
         index_client.delete_index(index_name)
         logger.info(f"Successfully deleted index: {index_name}")
-        return {
-            "status": "success",
-            "message": f"Index '{index_name}' deleted successfully",
-            "index_name": index_name,
-        }
-    except HTTPException:
-        raise
+        return DeleteIndexResponse(
+            status="success",
+            message=f"Index '{index_name}' deleted successfully",
+            index_name=index_name,
+        )
+
     except Exception as e:
-        logger.error(f"Error deleting index: {e}")
+        logger.error(f"An error occurred in the azure-index/delete_index endpoint: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to delete index '{index_name}': {str(e)}"
         )
@@ -206,82 +200,13 @@ async def get_index_statistics(
         )
 
     except Exception as e:
-        logger.error(f"Error getting index stats: {e}")
+        logger.error(f"An error occurred in the azure-index/index-stats endpoint: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to get index statistics: {str(e)}"
         )
 
 
-@router.get("/search", response_model=SearchResponse)
-async def search_index(
-    query: str = Query(..., description="Search query"),
-    top: int = Query(50, description="Number of results to return", le=100),
-    skip: int = Query(0, description="Number of results to skip", ge=0),
-):
-    """
-    Search the Azure Search text index.
-
-    Args:
-        query: Search query string
-        top: Number of results to return (max 100)
-        skip: Number of results to skip for pagination
-
-    Returns:
-        SearchResponse: Search results with metadata
-    """
-    try:
-        search_client = get_search_client()
-
-        logger.info(f"Searching index '{azure_search_index_txt}' for: '{query}'")
-
-        # Perform search
-        results = search_client.search(
-            search_text=query if query != "*" else "",
-            top=top,
-            skip=skip,
-            include_total_count=True,
-            select=["id", "content", "source", "timestamp", "chunk_id"],
-        )
-
-        # Process results
-        search_results = []
-        total_count = 0
-
-        for result in results:
-            search_results.append(
-                SearchResult(
-                    id=result.get("id", ""),
-                    content=result.get("content", ""),
-                    source=result.get("source", ""),
-                    timestamp=result.get("timestamp", ""),
-                    chunk_id=result.get("chunk_id"),
-                    score=result.get("@search.score"),
-                )
-            )
-
-        # Get total count from results
-        try:
-            total_count = results.get_count()
-        except Exception:
-            total_count = len(search_results)
-
-        logger.info(
-            f"Found {total_count} total results, returning {len(search_results)} results"
-        )
-
-        return SearchResponse(
-            total_count=total_count,
-            results=search_results,
-            query=query,
-            status="success",
-        )
-
-    except Exception as e:
-        logger.error(f"Error searching index: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to search index: {str(e)}")
-
-
-@router.get("/browse")
+@router.get("/browse", response_model=Union[SearchResponse, TitleListResponse])
 async def browse_all_documents(
     page: int = Query(1, description="Page number", ge=1),
     page_size: int = Query(20, description="Documents per page", le=50),
@@ -290,14 +215,6 @@ async def browse_all_documents(
     """
     Browse all documents in the Azure Search text index with pagination.
     Uses different method if index has 'title' field - returns list of unique titles.
-
-    Args:
-        page: Page number (1-based)
-        page_size: Number of documents per page (max 50)
-        index_name: Optional index name to browse (defaults to text index)
-
-    Returns:
-        Union[SearchResponse, TitleListResponse]: Document results or title list
     """
     try:
         search_client = get_search_client(index_name)
@@ -362,146 +279,72 @@ async def browse_all_documents(
                 status="success",
             )
     except Exception as e:
-        logger.error(f"Error browsing index: {e}")
+        logger.error(f"An error occurred in the azure-index/browse endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to browse index: {str(e)}")
 
 
-@router.get("/document/{doc_id}")
-async def get_document_by_id(doc_id: str):
-    """
-    Get a specific document by its ID from the Azure Search index.
-
-    Args:
-        doc_id: Document ID to retrieve
-
-    Returns:
-        Document data
-    """
-    try:
-        search_client = get_search_client()
-
-        logger.info(f"Fetching document with ID: {doc_id}")
-
-        # Search for the specific document
-        results = search_client.search(
-            search_text="*",
-            filter=f"id eq '{doc_id}'",
-            select=["id", "content", "source", "timestamp", "chunk_id"],
-            top=1,
-        )
-
-        result_list = list(results)
-
-        if not result_list:
-            raise HTTPException(
-                status_code=404, detail=f"Document with ID '{doc_id}' not found"
-            )
-
-        document = result_list[0]
-
-        return SearchResult(
-            id=document.get("id", ""),
-            content=document.get("content", ""),
-            source=document.get("source", ""),
-            timestamp=document.get("timestamp", ""),
-            chunk_id=document.get("chunk_id"),
-            score=document.get("@search.score"),
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching document: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch document: {str(e)}"
-        )
-
-
-@router.delete("/documents/{doc_id}")
+@router.delete("/documents/{doc_id}", response_model=DeleteDocumentResponse)
 async def delete_document_from_index(
-    doc_id: str,
+    doc_id: str = Path(..., description="ID of the document to delete"),
     index_name: Optional[str] = Query(None, description="Index name to delete from"),
 ):
     """
     Delete a specific document by its ID from the Azure Search index.
-
-    Args:
-        doc_id: Document ID to delete
-        index_name: Optional index name to delete from (defaults to text index)
-
-    Returns:
-        Success message
     """
     try:
         search_client = get_search_client(index_name)
         selected_index = index_name or azure_search_index_txt
-
         logger.info(f"Deleting document with ID: {doc_id} from index: {selected_index}")
-
-        # First, check if document exists
         check_results = search_client.search(
             search_text="*", filter=f"id eq '{doc_id}'", select=["id"], top=1
         )
-
         if not list(check_results):
             raise HTTPException(
                 status_code=404, detail=f"Document with ID '{doc_id}' not found"
             )
-
-        # Delete the document
         search_client.delete_documents([{"id": doc_id}])
-
         logger.info(f"Successfully deleted document with ID: {doc_id}")
-
-        return {
-            "message": f"Successfully deleted document with ID: {doc_id}",
-            "deleted_id": doc_id,
-            "status": "success",
-        }
-
+        return DeleteDocumentResponse(
+            message=f"Successfully deleted document with ID: {doc_id}",
+            deleted_id=doc_id,
+            status="success",
+        )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting document: {e}")
+        logger.error(f"An error occurred in the azure-index/document endpoint: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to delete document: {str(e)}"
         )
 
 
-@router.delete("/delete-documents-by-title/")
-async def delete_documents_by_title(index_name: str,
+@router.delete("/delete-documents-by-title/", response_model=DeleteByTitleResponse)
+async def delete_documents_by_title(
+    index_name: str = Path(..., description="Index name to delete from"),
     title: str = Query(..., description="Title of the document to delete"),
 ):
     try:
-        # Step 0: Check index fields for image_vector
         index_client = SearchIndexClient(
             endpoint=azure_search_endpoint,
             credential=AzureKeyCredential(azure_search_key),
         )
-        
         index_schema = index_client.get_index(index_name)
         field_names = [f.name for f in index_schema.fields]
         has_image_vector = "image_vector" in field_names
-
-        # Step 1: Find documents with matching title
         search_client = SearchClient(
             endpoint=azure_search_endpoint,
             index_name=index_name,
             credential=AzureKeyCredential(azure_search_key),
         )
-
         if has_image_vector:
             select_fields = ["text_parent_id", "title", "image_parent_id"]
         else:
-            # fallback for text-only index
             select_fields = ["parent_id", "title"]
-
         results = search_client.search(
             search_text=title,
             select=select_fields,
             top=100,
         )
-
         parent_ids = set()
         if has_image_vector:
             for doc in results:
@@ -511,57 +354,55 @@ async def delete_documents_by_title(index_name: str,
             for doc in results:
                 if doc.get("title") == title and doc.get("parent_id"):
                     parent_ids.add(doc["parent_id"])
-
         if not parent_ids:
             raise HTTPException(
                 status_code=404, detail=f"No documents found with title '{title}'"
             )
-
         total_deleted = 0
         documents_to_delete = []
-
         for target_parent_id in parent_ids:
-            # Step 2: Get all docs with matching parent_id fields (select all fields)
             if has_image_vector:
                 results_text = search_client.search(
-                    search_text="*", filter=f"text_parent_id eq '{target_parent_id}'", select=["*"]
+                    search_text="*",
+                    filter=f"text_parent_id eq '{target_parent_id}'",
+                    select=["*"],
                 )
                 results_image = search_client.search(
-                    search_text="*", filter=f"image_parent_id eq '{target_parent_id}'", select=["*"]
+                    search_text="*",
+                    filter=f"image_parent_id eq '{target_parent_id}'",
+                    select=["*"],
                 )
             else:
                 results_text = search_client.search(
-                    search_text="*", filter=f"parent_id eq '{target_parent_id}'", select=["*"]
+                    search_text="*",
+                    filter=f"parent_id eq '{target_parent_id}'",
+                    select=["*"],
                 )
                 results_image = []
-
-            # Step 3: Collect chunk_ids, with debug logging
             for doc in results_text:
                 logger.warning(f"results_text doc keys: {list(doc.keys())}")
                 if "chunk_id" in doc:
                     documents_to_delete.append({"chunk_id": doc["chunk_id"]})
                 else:
                     logger.error(f"No chunk_id in doc: {doc}")
-
             for doc in results_image:
                 logger.warning(f"results_image doc keys: {list(doc.keys())}")
                 if "chunk_id" in doc:
                     documents_to_delete.append({"chunk_id": doc["chunk_id"]})
                 else:
                     logger.error(f"No chunk_id in doc: {doc}")
-
-        # Step 4: Delete
         if documents_to_delete:
             search_client.delete_documents(documents=documents_to_delete)
             total_deleted = len(documents_to_delete)
         else:
             raise HTTPException(status_code=404, detail="No documents found to delete.")
-
-        return {
-            "message": f"Deleted {total_deleted} documents.",
-            "deleted_count": total_deleted,
-            "title": title,
-        }
-
+        return DeleteByTitleResponse(
+            message=f"Deleted {total_deleted} documents.",
+            deleted_count=total_deleted,
+            title=title,
+        )
     except Exception as e:
+        logger.error(
+            f"An error occurred in the azure-index/delete_by_title endpoint: {e}"
+        )
         raise HTTPException(status_code=500, detail=f"Internal error: {e}")

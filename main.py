@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from config import setup_logging
+from config import setup_logging, notion_url
 from routers import (
     azure_index,
     create_service,
@@ -17,12 +18,16 @@ from routers import (
     upload_pdf,
 )
 
+
+
 # Load environment variables
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(env_path)
 
 # Setup logging
 setup_logging()
+logger = logging.getLogger(__name__)
+logger.info('test log from main')
 
 # Initialize FastAPI app
 app = FastAPI(title="RAG PDF Question Answering API", version="1.0.0")
@@ -46,15 +51,15 @@ app.include_router(search.router, prefix="/search", tags=["AI RAG SEARCH"])
 app.include_router(
     rag_upload_text.router,
     prefix="/rag-upload-text",
-    tags=["Upload text from database to created index"],
+    tags=["Knowledge Data Manager"],
 )
 app.include_router(
-    azure_index.router, prefix="/azure-index", tags=["Azure Index Browser documents"]
+    azure_index.router, prefix="/azure-index", tags=["Azure Index Browser"]
 )
 app.include_router(
     upload_pdf.router,
     prefix="/upload-pdf",
-    tags=["Upload PDF to created azure container"],
+    tags=["PDF Upload to Blob"],
 )
 app.include_router(
     indexer.router,
@@ -67,6 +72,7 @@ app.include_router(
     prefix="/create-service",
     tags=["Create Indexer, Data Source, Skillset, Index"],
 )
+
 
 
 
@@ -100,6 +106,9 @@ async def serve_indexer_manager():
     """Serve the Indexer Manager UI."""
     return FileResponse(static_dir / "indexer.html")
 
+@app.get("/notion-link")
+def get_notion_link():
+    return {"url": notion_url}
 
 if __name__ == "__main__":
     import uvicorn

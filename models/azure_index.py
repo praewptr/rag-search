@@ -17,3 +17,27 @@ class CreateIndexResponse(BaseModel):
     message: str
     index_name: str
     created: bool
+
+
+class IndexInfo(BaseModel):
+    name: str
+
+class ListIndexesResponse(BaseModel):
+    status: str
+    indexes: list[IndexInfo]
+    default_index: str
+
+class DeleteIndexResponse(BaseModel):
+    status: str
+    message: str
+    index_name: str
+
+class DeleteDocumentResponse(BaseModel):
+    message: str
+    deleted_id: str
+    status: str
+
+class DeleteByTitleResponse(BaseModel):
+    message: str
+    deleted_count: int
+    title: str

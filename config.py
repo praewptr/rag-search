@@ -37,29 +37,31 @@ oracle_db_host = os.getenv("ORACLE_DB_HOST", "172.16.7.117")
 oracle_db_port = int(os.getenv("ORACLE_DB_PORT", "1521"))
 oracle_db_service_name = os.getenv("ORACLE_DB_SERVICE_NAME", "NYTG")
 
-# Validate keys
-if not azure_oai_key or not azure_search_key:
-    raise ValueError("Missing required keys. Please check your .env file.")
+doc_storage_path = os.getenv("SERVER_STORAGE_PATH")
+notion_url = os.getenv("NOTION_URL")
+# # Validate keys
+# if not azure_oai_key or not azure_search_key:
+#     raise ValueError("Missing required keys. Please check your .env file.")
 
-# Validate Azure OpenAI Embeddings configuration (optional but recommended for vector search)
-missing_embedding_vars = []
-if not azure_emb_oai_key:
-    missing_embedding_vars.append("AZURE_EMB_OAI_KEY")
-if not azure_emb_oai_endpoint:
-    missing_embedding_vars.append("AZURE_EMB_OAI_ENDPOINT")
-if not azure_emb_oai_deployment:
-    missing_embedding_vars.append("AZURE_EMB_OAI_DEPLOYMENT")
+# # Validate Azure OpenAI Embeddings configuration (optional but recommended for vector search)
+# missing_embedding_vars = []
+# if not azure_emb_oai_key:
+#     missing_embedding_vars.append("AZURE_EMB_OAI_KEY")
+# if not azure_emb_oai_endpoint:
+#     missing_embedding_vars.append("AZURE_EMB_OAI_ENDPOINT")
+# if not azure_emb_oai_deployment:
+#     missing_embedding_vars.append("AZURE_EMB_OAI_DEPLOYMENT")
 
-if missing_embedding_vars:
-    print(
-        f"Warning: Azure OpenAI Embeddings not fully configured. Missing: {', '.join(missing_embedding_vars)}"
-    )
-    print(
-        "Vector search will be disabled for new indexes. Text search will still work."
-    )
-    print(
-        "To enable vector search, add the missing environment variables to your .env file."
-    )
+# if missing_embedding_vars:
+#     print(
+#         f"Warning: Azure OpenAI Embeddings not fully configured. Missing: {', '.join(missing_embedding_vars)}"
+#     )
+#     print(
+#         "Vector search will be disabled for new indexes. Text search will still work."
+#     )
+#     print(
+#         "To enable vector search, add the missing environment variables to your .env file."
+#     )
 
 
 # Logging Configuration
@@ -77,15 +79,34 @@ def setup_logging():
         print("Logging disabled")
         return
 
-    # Configure root logger
-    logging.basicConfig(
-        level=getattr(logging, LOG_LEVEL),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    # Configure root logger with daily rotation
+    from logging.handlers import TimedRotatingFileHandler
+
+    log_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, "app.log")
+
+    log_formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
+    handler = TimedRotatingFileHandler(
+        log_file, when="midnight", backupCount=14, encoding="utf-8"
+    )
+    handler.setFormatter(log_formatter)
+    handler.suffix = "%Y-%m-%d"
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, LOG_LEVEL))
+    # Remove all handlers first (avoid duplicate logs if reloaded)
+    for h in root_logger.handlers[:]:
+        root_logger.removeHandler(h)
+    root_logger.addHandler(handler)
 
     # Set specific logger levels if needed
-    # For example, to reduce Azure SDK logging:
     logging.getLogger("azure").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-    print(f"Logging configured at level: {LOG_LEVEL}")
+    print(f"Logging configured at level: {LOG_LEVEL}, file: {log_file}")
+
+
+logger = setup_logging()

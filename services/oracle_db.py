@@ -66,7 +66,9 @@ class OracleDBService:
             except Exception as e:
                 print(f"Error closing Oracle connection: {e}")
 
-    def fetch_knowledge_data(self, added: Optional[int] = None) -> Dict[str, List[Dict[str, Any]]]:
+    def fetch_knowledge_data(
+        self, added: Optional[int] = None
+    ) -> Dict[str, List[Dict[str, Any]]]:
         """
         Fetch data from test.knowledge table with optional filtering.
 
@@ -79,10 +81,13 @@ class OracleDBService:
         try:
             connection = self.get_connection()
             cursor = connection.cursor()
-            
+
             # Build query with optional WHERE clause
             if added is not None:
-                cursor.execute("SELECT k.*, k.ROWID FROM DIGITAL_TEST.TBL_KNOWLEDGE k WHERE ADDED = :1", [added])
+                cursor.execute(
+                    "SELECT k.*, k.ROWID FROM DIGITAL_TEST.TBL_KNOWLEDGE k WHERE ADDED = :1",
+                    [added],
+                )
             else:
                 cursor.execute("SELECT k.*, k.ROWID FROM DIGITAL_TEST.TBL_KNOWLEDGE k")
 
@@ -92,7 +97,6 @@ class OracleDBService:
             # Fetch and convert rows to dicts
             rows = cursor.fetchall()
             data = []
-
 
             for i, row in enumerate(rows):
                 row_dict = {}
@@ -106,7 +110,7 @@ class OracleDBService:
                     "source": row_dict.get("USER_NAME"),
                     "timestamp": row_dict.get("CREATED_DATE"),
                     "ADDED": row_dict.get("ADDED"),
-                    "id": row_dict.get("ID", i + 1)
+                    "id": row_dict.get("ID", i + 1),
                 }
 
                 data.append(mapped_dict)
